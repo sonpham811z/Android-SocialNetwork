@@ -138,12 +138,34 @@ class ApiError {
   });
 
   factory ApiError.fromJson(Map<String, dynamic> json) {
+    List<String>? parsedErrors;
+
+    if (json['errors'] != null) {
+      parsedErrors = [];
+      
+      // Trường hợp 1: Backend trả về 1 mảng (List) bình thường
+      if (json['errors'] is List) {
+        parsedErrors = List<String>.from(json['errors']);
+      } 
+      // Trường hợp 2: Backend trả về 1 cục Map (ví dụ lỗi Validation của ASP.NET)
+      else if (json['errors'] is Map) {
+        final errorMap = json['errors'] as Map<String, dynamic>;
+        errorMap.forEach((key, value) {
+          if (value is List) {
+            // Nếu value là mảng ["lỗi 1", "lỗi 2"]
+            parsedErrors!.addAll(List<String>.from(value));
+          } else {
+            // Nếu value chỉ là text bình thường
+            parsedErrors!.add(value.toString());
+          }
+        });
+      }
+    }
+
     return ApiError(
       success: json['success'] ?? false,
       message: json['message'] ?? 'An error occurred',
-      errors: json['errors'] != null 
-          ? List<String>.from(json['errors']) 
-          : null,
+      errors: (parsedErrors != null && parsedErrors.isNotEmpty) ? parsedErrors : null,
     );
   }
 }

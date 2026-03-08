@@ -18,20 +18,25 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
+  
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: Environment.googleClientId, // Truyền Client ID Web vào đây
+    serverClientId: Environment.googleClientId, 
     scopes: ['email', 'profile', 'openid'],
   );
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -40,18 +45,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _handleSignup() async {
     if (_formKey.currentState!.validate()) {
-      // Split full name into first and last name
-      final nameParts = _fullNameController.text.trim().split(' ');
-      final firstName = nameParts.first;
-      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
-
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
       final success = await authProvider.register(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        firstName: firstName,
-        lastName: lastName,
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
         dateOfBirth: '1990-01-01', // Default date
         gender: 'Other', // Default gender
       );
@@ -124,7 +124,6 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 1024;
@@ -133,7 +132,6 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background gradient
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -153,7 +151,6 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
           
-          // Decorative circles
           Positioned(
             top: -50,
             left: -50,
@@ -181,9 +178,6 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
 
-         
-
-          // Main content
           Center(
             child: SingleChildScrollView(
               child: Padding(
@@ -216,7 +210,6 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget _buildDesktopLayout(AuthProvider authProvider, bool isDark) {
     return Row(
       children: [
-        // Left side - Image panel
         Expanded(
           child: Container(
             decoration: BoxDecoration(
@@ -228,7 +221,6 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             child: Stack(
               children: [
-                // Wavy pattern overlay
                 Positioned.fill(
                   child: Opacity(
                     opacity: 0.2,
@@ -237,8 +229,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 ),
-                
-                // Content
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32),
@@ -277,8 +267,6 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
         ),
-        
-        // Right side - Form
         Expanded(
           child: _buildFormContent(authProvider, isDark),
         ),
@@ -293,8 +281,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
- Widget _buildFormContent(AuthProvider authProvider, bool isDark) {
-    // 1. Lấy ThemeProvider để dùng cho nút đổi theme
+  Widget _buildFormContent(AuthProvider authProvider, bool isDark) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
 
     return Form(
@@ -307,7 +294,6 @@ class _SignupScreenState extends State<SignupScreen> {
           Stack(
             alignment: Alignment.center,
             children: [
-              // Header nằm giữa
               Column(
                 children: [
                   Text(
@@ -323,7 +309,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ],
               ),
-              // Nút đổi theme nằm góc phải (không bao giờ bị đè)
               Positioned(
                 right: 0,
                 top: 0,
@@ -339,11 +324,9 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ],
           ),
-          // -----------------------------------------------------
 
           const SizedBox(height: 32),
 
-          // Error message
           if (authProvider.error != null)
             Container(
               margin: const EdgeInsets.only(bottom: 16),
@@ -359,21 +342,34 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
 
-          // Full name field
+          // --- Đã tách First Name và Last Name thành 2 dòng ---
           CustomTextField(
-            controller: _fullNameController,
-            hintText: 'Full Name',
+            controller: _firstNameController,
+            hintText: 'First Name',
             prefixIcon: Icons.person_outline,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your full name';
+                return 'Please enter your first name';
               }
               return null;
             },
           ),
           const SizedBox(height: 16),
 
-          // Email field
+          CustomTextField(
+            controller: _lastNameController,
+            hintText: 'Last Name',
+            prefixIcon: Icons.person_outline,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your last name';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          // ---------------------------------------------------
+
           CustomTextField(
             controller: _emailController,
             hintText: 'Email',
@@ -391,7 +387,6 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Password field
           CustomTextField(
             controller: _passwordController,
             hintText: 'Password',
@@ -420,7 +415,6 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Confirm password field
           CustomTextField(
             controller: _confirmPasswordController,
             hintText: 'Confirm Password',
@@ -449,7 +443,6 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Sign up button
           SizedBox(
             height: 56,
             child: ElevatedButton(
@@ -468,7 +461,6 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Divider
           Row(
             children: [
               Expanded(child: Divider(color: isDark ? AppTheme.slate700 : AppTheme.slate200)),
@@ -497,7 +489,6 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Google Sign In button
           GoogleSignInButton(
             onPressed: _handleGoogleSignIn,
             text: 'Sign up with Google',
@@ -520,7 +511,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         style: TextStyle(
                           color: AppTheme.violetPrimary,
                           fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none, // 
+                          decoration: TextDecoration.none,
                         ),
                       ),
                     ),
@@ -535,7 +526,6 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 }
 
-// Custom painter for wavy background (same as login screen)
 class WavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
