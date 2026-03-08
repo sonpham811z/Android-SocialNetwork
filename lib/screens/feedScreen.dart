@@ -9,6 +9,7 @@ import '../widgets/feed/rightSidebar.dart';
 import '../widgets/feed/floatingDock.dart';
 import '../widgets/feed/createPostModal.dart';
 import '../widgets/feed/voicePlayer.dart';
+import '../widgets/messages/messageListBody.dart';
 import '../widgets/profile/profileBody.dart'; // [IMPORT MỚI]
 
 class FeedScreen extends StatefulWidget {
@@ -44,6 +45,12 @@ class _FeedScreenState extends State<FeedScreen> {
     final isDesktop = size.width > 1024;
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
+    int getStackIndex(int tabIndex) {
+      if (tabIndex == 5) return 1; // 5 là Avatar -> ProfileBody
+      if (tabIndex == 3) return 2; // 3 là Message Icon -> MessageListBody
+      return 0;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F10),
       body: Stack(
@@ -52,7 +59,7 @@ class _FeedScreenState extends State<FeedScreen> {
           SafeArea(
             bottom: false,
             child: IndexedStack( // Dùng IndexedStack để giữ trạng thái khi chuyển tab
-              index: _currentTabIndex == 5 ? 1 : 0, // Nếu index=5 (Avatar) thì hiện Profile (1), còn lại Feed (0)
+              index: getStackIndex(_currentTabIndex), // Nếu index=5 (Avatar) thì hiện Profile (1), còn lại Feed (0)
               children: [
                 // INDEX 0: FEED BODY (Code cũ của bro)
                 Column(
@@ -108,6 +115,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
                 // INDEX 1: PROFILE BODY (Code mới)
                 const ProfileBody(),
+
+                // INDEX 2: MESSAGE LIST BODY (MỚI THÊM NÈ)
+                const MessageListBody(),
               ],
             ),
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../feed/postCard.dart'; // Import lại PostCard cũ
+import '../../screens/settingsScreen.dart';
 
 class ProfileBody extends StatefulWidget {
   const ProfileBody({super.key});
@@ -171,7 +172,19 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                 children: [
                   _buildActionButton(isDark, Icons.edit, "Edit Profile"),
                   const SizedBox(width: 8),
-                  _buildIconOnlyButton(isDark, Icons.share_outlined),
+                  _buildIconOnlyButton(isDark, Icons.share_outlined, onTap: () {}),
+                  const SizedBox(width: 8),
+                  // NÚT SETTINGS MỚI THÊM NÈ BRO
+                  _buildIconOnlyButton(
+                    isDark, 
+                    Icons.settings_outlined, 
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                      );
+                    },
+                  ),
                 ],
               ),
               
@@ -268,15 +281,18 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildIconOnlyButton(bool isDark, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.slate800 : AppTheme.slate200,
-        shape: BoxShape.circle,
-        border: Border.all(color: isDark ? AppTheme.slate700 : Colors.transparent),
-      ),
-      child: Icon(icon, size: 18, color: isDark ? Colors.white : Colors.black),
+  Widget _buildIconOnlyButton(bool isDark, IconData icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.slate800 : AppTheme.slate200,
+          shape: BoxShape.circle,
+          border: Border.all(color: isDark ? AppTheme.slate700 : Colors.transparent),
+        ),
+        child: Icon(icon, size: 18, color: isDark ? Colors.white : Colors.black),
+      )
     );
   }
 
