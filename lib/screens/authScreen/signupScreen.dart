@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../providers/authProvider.dart';
-import '../providers/themeProvider.dart';
-import '../widgets/customTextField.dart';
-import '../widgets/googleButton.dart';
-import '../config/theme.dart';
-import '../services/authService.dart';
-import '../config/environment.dart';
+import '../../providers/authProvider.dart';
+import '../../providers/themeProvider.dart';
+import '../../widgets/customTextField.dart';
+import '../../widgets/googleButton.dart';
+import '../../config/theme.dart';
+import '../../services/authService.dart';
+import '../../config/environment.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -16,7 +16,8 @@ class SignupScreen extends StatefulWidget {
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+// Thêm SingleTickerProviderStateMixin để làm animation cho cái vòng tròn Pulse
+class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   
   final _firstNameController = TextEditingController();
@@ -27,6 +28,13 @@ class _SignupScreenState extends State<SignupScreen> {
   
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  // Biến kiểm soát hiển thị màn hình Verify
+  bool _isSubmitted = false;
+  bool _isResending = false;
+
+  // Controller cho hiệu ứng vòng tròn nhấp nháy (Pulse Animation)
+  late AnimationController _pulseController;
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     serverClientId: Environment.googleClientId, 
@@ -34,7 +42,18 @@ class _SignupScreenState extends State<SignupScreen> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    // Khởi tạo animation lặp đi lặp lại liên tục
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
   void dispose() {
+    _pulseController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
@@ -58,13 +77,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pushReplacementNamed(context, '/home');
+          // Thay vì chuyển sang /home, giờ ta chuyển sang màn hình Verify
+          setState(() {
+            _isSubmitted = true;
+          });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -74,6 +90,28 @@ class _SignupScreenState extends State<SignupScreen> {
           );
         }
       }
+    }
+  }
+
+  // Hàm xử lý gửi lại email
+  Future<void> _handleResendEmail() async {
+    setState(() {
+      _isResending = true;
+    });
+
+    // TODO: Tích hợp gọi API Resend Email ở đây
+    await Future.delayed(const Duration(seconds: 2)); // Giả lập loading 2s
+
+    if (mounted) {
+      setState(() {
+        _isResending = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verification email resent! Please check your inbox.'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
@@ -267,8 +305,14 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
         ),
+        // Chuyển đổi giữa Form đăng ký và Giao diện Verify
         Expanded(
-          child: _buildFormContent(authProvider, isDark),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: _isSubmitted 
+                ? _buildVerificationLayout(isDark) 
+                : _buildFormContent(authProvider, isDark),
+          ),
         ),
       ],
     );
@@ -277,10 +321,151 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget _buildMobileLayout(AuthProvider authProvider, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(32),
-      child: _buildFormContent(authProvider, isDark),
+      // Chuyển đổi giữa Form đăng ký và Giao diện Verify
+      child: _isSubmitted 
+          ? _buildVerificationLayout(isDark) 
+          : _buildFormContent(authProvider, isDark),
     );
   }
 
+  // --- UI VERIFY EMAIL (Bê từ React qua) ---
+  Widget _buildVerificationLayout(bool isDark) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Animation Icon vòng tròn tỏa ra
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            // Vòng tròn tỏa ra (Pulse)
+            AnimatedBuilder(
+              animation: _pulseController,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: 1.0 + (_pulseController.value * 0.5), // Phóng to 1.5 lần
+                  child: Opacity(
+                    opacity: 1.0 - _pulseController.value, // Mờ dần
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppTheme.violetPrimary.withOpacity(0.5),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            // Nền tĩnh và Icon mail bên trong
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.violetPrimary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.mark_email_unread_outlined, 
+                color: AppTheme.violetPrimary, 
+                size: 40,
+              ),
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 24),
+
+        Text(
+          'Check Your Email',
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
+          textAlign: TextAlign.center,
+        ),
+        
+        const SizedBox(height: 8),
+        
+        Text(
+          'We have sent a verification link to',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: isDark ? AppTheme.slate400 : AppTheme.slate500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        
+        const SizedBox(height: 4),
+        
+        Text(
+          _emailController.text, // Lấy email người dùng vừa nhập
+          style: const TextStyle(
+            color: AppTheme.violetPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 24),
+
+        Text(
+          "Click the link in the email to verify your account. If you don't see it, check your spam folder.",
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: isDark ? AppTheme.slate500 : AppTheme.slate400,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 32),
+
+        // Nút Resend Email
+        SizedBox(
+          height: 48,
+          child: ElevatedButton(
+            onPressed: _isResending ? null : _handleResendEmail,
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+            ),
+            child: _isResending
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text('Resend Email'),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Nút Back to Login
+        TextButton.icon(
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, '/login');
+          },
+          icon: Icon(
+            Icons.arrow_back, 
+            size: 16, 
+            color: isDark ? AppTheme.slate400 : AppTheme.slate500,
+          ),
+          label: Text(
+            'Back to Login',
+            style: TextStyle(
+              color: isDark ? AppTheme.slate400 : AppTheme.slate500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- UI FORM ĐĂNG KÝ (Giữ nguyên như cũ) ---
   Widget _buildFormContent(AuthProvider authProvider, bool isDark) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
 
@@ -342,7 +527,6 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
 
-          // --- Đã tách First Name và Last Name thành 2 dòng ---
           CustomTextField(
             controller: _firstNameController,
             hintText: 'First Name',
@@ -368,7 +552,6 @@ class _SignupScreenState extends State<SignupScreen> {
             },
           ),
           const SizedBox(height: 16),
-          // ---------------------------------------------------
 
           CustomTextField(
             controller: _emailController,

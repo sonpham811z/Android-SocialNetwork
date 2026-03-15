@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../feed/postCard.dart'; // Import lại PostCard cũ
-import '../../screens/settingsScreen.dart';
+import '../../screens/settings/settingsScreen.dart';
 
 class ProfileBody extends StatefulWidget {
   const ProfileBody({super.key});

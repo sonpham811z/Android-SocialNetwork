@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import '../config/theme.dart';
-import '../models/feedModel.dart';
-import '../widgets/feed/feedHeader.dart';
-import '../widgets/feed/storiesSection.dart';
-import '../widgets/feed/statusInput.dart';
-import '../widgets/feed/postCard.dart';
-import '../widgets/feed/rightSidebar.dart';
-import '../widgets/feed/floatingDock.dart';
-import '../widgets/feed/createPostModal.dart';
-import '../widgets/feed/voicePlayer.dart';
-import '../widgets/messages/messageListBody.dart';
-import '../widgets/profile/profileBody.dart'; // [IMPORT MỚI]
+import '../../config/theme.dart';
+import '../../models/feedModel.dart';
+import '../../widgets/feed/feedHeader.dart';
+import '../../widgets/feed/storiesSection.dart';
+import '../../widgets/feed/statusInput.dart';
+import '../../widgets/feed/postCard.dart';
+import '../../widgets/feed/rightSidebar.dart';
+import '../../widgets/feed/floatingDock.dart';
+import '../../widgets/feed/createPostModal.dart';
+import '../../widgets/feed/voicePlayer.dart';
+import '../../widgets/messages/messageListBody.dart';
+import '../../widgets/profile/profileBody.dart'; // [IMPORT MỚI]
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});

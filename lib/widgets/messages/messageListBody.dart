@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/chatModel.dart';
-import '../../screens/chatScreen.dart';
+import '../../screens/appScreen/chatScreen.dart';
 
 class MessageListBody extends StatelessWidget {
   const MessageListBody({super.key});
