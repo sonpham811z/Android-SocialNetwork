@@ -75,8 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (googleUser != null) {
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
         final credential = googleAuth.idToken;
-        print("concncncndshfuhduhsfudhfhsdf $credential");
-
 
         if (credential != null && mounted) {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
-import '../feed/postCard.dart'; // Import lại PostCard cũ
+import '../../models/userModel.dart';
+import '../../providers/userProfileProvider.dart';
+import '../feed/postCard.dart';
 import '../../screens/settings/settingsScreen.dart';
 
 class ProfileBody extends StatefulWidget {
@@ -11,26 +15,18 @@ class ProfileBody extends StatefulWidget {
   State<ProfileBody> createState() => _ProfileBodyState();
 }
 
-class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStateMixin {
+class _ProfileBodyState extends State<ProfileBody>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  // Mock user info (Lấy từ React Sidebar sang)
-  final userInfo = {
-    'name': 'Nguyen Van A',
-    'handle': '@nguyenvana',
-    'bio': 'Software Developer | Tech Enthusiast | Coffee Lover ☕\nBuilding cool things with code.',
-    'location': 'Ho Chi Minh City',
-    'posts': '89',
-    'followers': '1.2k',
-    'following': '567',
-    'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
-    'cover': 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&h=400&fit=crop', // Ảnh Cyberpunk tí
-  };
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
+    Future.microtask(
+      () => context.read<UserProfileProvider>().loadMyProfile(),
+    );
   }
 
   @override
@@ -43,18 +39,38 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Lọc ra các bài post của user này (Mock logic)
-    // Tạm thời lấy hết post trong MockData để demo cho nhiều
     final myPosts = MockData.posts; 
 
-    return CustomScrollView(
-      slivers: [
-        // 1. Header (Cover + Info)
-        SliverToBoxAdapter(
-          child: _buildProfileHeader(isDark),
-        ),
+    return Consumer<UserProfileProvider>(
+      builder: (context, profileProvider, _) {
+        if (profileProvider.isLoading && profileProvider.profile == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        // 2. Sticky Tabs (Dính lên trên khi cuộn)
+        if (profileProvider.error != null &&
+            profileProvider.profile == null) {
+          return Center(
+            child: Text(
+              profileProvider.error!,
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        final user = profileProvider.profile;
+
+        if (user == null) {
+          return const Center(
+            child: Text('Không tìm thấy thông tin người dùng'),
+          );
+        }
+
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildProfileHeader(isDark, user),
+            ),
+
         SliverPersistentHeader(
           delegate: _SliverAppBarDelegate(
             TabBar(
@@ -76,7 +92,6 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
           pinned: true,
         ),
 
-        // 3. Post List (Dùng lại PostCard)
         SliverPadding(
           padding: const EdgeInsets.only(top: 16, bottom: 100), // Bottom padding cho Dock
           sliver: SliverList(
@@ -95,7 +110,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                   return Container(
                     height: 200,
                     alignment: Alignment.center,
-                    child: Text(
+                    child: const Text(
                       "Chưa có dữ liệu",
                       style: TextStyle(color: AppTheme.slate500),
                     ),
@@ -106,24 +121,28 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
             ),
           ),
         ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildProfileHeader(bool isDark) {
+  Widget _buildProfileHeader(bool isDark, User user) {
+    final coverUrl = user.avatar ??
+        'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&h=400&fit=crop';
+
     return Column(
       children: [
         Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.bottomLeft,
           children: [
-            // Cover Image
             Container(
               height: 200,
               width: double.infinity,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(userInfo['cover']!),
+                  image: NetworkImage(coverUrl),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -141,7 +160,6 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
               ),
             ),
             
-            // Avatar (Đè lên cover)
             Positioned(
               bottom: -40,
               left: 20,
@@ -153,20 +171,22 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                 ),
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundImage: NetworkImage(userInfo['avatar']!),
+                  backgroundImage:
+                      user.avatar != null ? NetworkImage(user.avatar!) : null,
+                  child: user.avatar == null
+                      ? const Icon(Icons.person, size: 40)
+                      : null,
                 ),
               ),
             ),
           ],
         ),
 
-        // Info Section
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Button Row (Edit Profile)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -190,11 +210,10 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
               
               const SizedBox(height: 8),
 
-              // Name & Handle
               Row(
                 children: [
                   Text(
-                    userInfo['name']!,
+                    user.fullName,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -206,15 +225,14 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                 ],
               ),
               Text(
-                userInfo['handle']!,
-                style: TextStyle(color: AppTheme.slate500, fontSize: 14),
+                '@${user.email.split('@').first}',
+                style: const TextStyle(color: AppTheme.slate500, fontSize: 14),
               ),
 
               const SizedBox(height: 12),
 
-              // Bio
               Text(
-                userInfo['bio']!,
+                'Bio đang cập nhật...',
                 style: TextStyle(
                   color: isDark ? Colors.white.withOpacity(0.9) : AppTheme.slate800,
                   fontSize: 14,
@@ -224,29 +242,29 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
 
               const SizedBox(height: 16),
 
-              // Location & Joined
               Row(
                 children: [
-                  Icon(Icons.location_on_outlined, size: 16, color: AppTheme.slate500),
+                  const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.slate500),
                   const SizedBox(width: 4),
-                  Text(userInfo['location']!, style: TextStyle(color: AppTheme.slate500, fontSize: 13)),
+                  const Text('Đang cập nhật',
+                      style: TextStyle(
+                          color: AppTheme.slate500, fontSize: 13)),
                   const SizedBox(width: 16),
-                  Icon(Icons.calendar_month_outlined, size: 16, color: AppTheme.slate500),
+                  const Icon(Icons.calendar_month_outlined, size: 16, color: AppTheme.slate500),
                   const SizedBox(width: 4),
-                  Text("Joined Jan 2023", style: TextStyle(color: AppTheme.slate500, fontSize: 13)),
+                  const Text("Joined Jan 2023", style: TextStyle(color: AppTheme.slate500, fontSize: 13)),
                 ],
               ),
 
               const SizedBox(height: 16),
 
-              // Stats Row
               Row(
                 children: [
-                  _buildStatItem(isDark, userInfo['posts']!, "Posts"),
+                  _buildStatItem(isDark, '0', "Posts"),
                   const SizedBox(width: 24),
-                  _buildStatItem(isDark, userInfo['followers']!, "Followers"),
+                  _buildStatItem(isDark, '0', "Followers"),
                   const SizedBox(width: 24),
-                  _buildStatItem(isDark, userInfo['following']!, "Following"),
+                  _buildStatItem(isDark, '0', "Following"),
                 ],
               ),
             ],
@@ -310,7 +328,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             color: AppTheme.slate500,
             fontSize: 14,
           ),
