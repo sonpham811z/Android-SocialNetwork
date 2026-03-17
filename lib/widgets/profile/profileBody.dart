@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
-import '../../models/userModel.dart';
-import '../../providers/userProfileProvider.dart';
-import '../feed/postCard.dart';
+import '../feed/postCard.dart'; // Import lại PostCard cũ
 import '../../screens/settings/settingsScreen.dart';
 
 class ProfileBody extends StatefulWidget {
@@ -15,18 +11,26 @@ class ProfileBody extends StatefulWidget {
   State<ProfileBody> createState() => _ProfileBodyState();
 }
 
-class _ProfileBodyState extends State<ProfileBody>
-    with SingleTickerProviderStateMixin {
+class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  // Mock user info (Lấy từ React Sidebar sang)
+  final userInfo = {
+    'name': 'Nguyen Van A',
+    'handle': '@nguyenvana',
+    'bio': 'Software Developer | Tech Enthusiast | Coffee Lover ☕\nBuilding cool things with code.',
+    'location': 'Ho Chi Minh City',
+    'posts': '89',
+    'followers': '1.2k',
+    'following': '567',
+    'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+    'cover': 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&h=400&fit=crop', // Ảnh Cyberpunk tí
+  };
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-
-    Future.microtask(
-      () => context.read<UserProfileProvider>().loadMyProfile(),
-    );
   }
 
   @override
@@ -39,38 +43,18 @@ class _ProfileBodyState extends State<ProfileBody>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // Lọc ra các bài post của user này (Mock logic)
+    // Tạm thời lấy hết post trong MockData để demo cho nhiều
     final myPosts = MockData.posts; 
 
-    return Consumer<UserProfileProvider>(
-      builder: (context, profileProvider, _) {
-        if (profileProvider.isLoading && profileProvider.profile == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return CustomScrollView(
+      slivers: [
+        // 1. Header (Cover + Info)
+        SliverToBoxAdapter(
+          child: _buildProfileHeader(isDark),
+        ),
 
-        if (profileProvider.error != null &&
-            profileProvider.profile == null) {
-          return Center(
-            child: Text(
-              profileProvider.error!,
-              style: const TextStyle(color: Colors.red),
-            ),
-          );
-        }
-
-        final user = profileProvider.profile;
-
-        if (user == null) {
-          return const Center(
-            child: Text('Không tìm thấy thông tin người dùng'),
-          );
-        }
-
-        return CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: _buildProfileHeader(isDark, user),
-            ),
-
+        // 2. Sticky Tabs (Dính lên trên khi cuộn)
         SliverPersistentHeader(
           delegate: _SliverAppBarDelegate(
             TabBar(
@@ -92,6 +76,7 @@ class _ProfileBodyState extends State<ProfileBody>
           pinned: true,
         ),
 
+        // 3. Post List (Dùng lại PostCard)
         SliverPadding(
           padding: const EdgeInsets.only(top: 16, bottom: 100), // Bottom padding cho Dock
           sliver: SliverList(
@@ -110,7 +95,7 @@ class _ProfileBodyState extends State<ProfileBody>
                   return Container(
                     height: 200,
                     alignment: Alignment.center,
-                    child: const Text(
+                    child: Text(
                       "Chưa có dữ liệu",
                       style: TextStyle(color: AppTheme.slate500),
                     ),
@@ -121,28 +106,24 @@ class _ProfileBodyState extends State<ProfileBody>
             ),
           ),
         ),
-          ],
-        );
-      },
+      ],
     );
   }
 
-  Widget _buildProfileHeader(bool isDark, User user) {
-    final coverUrl = user.avatar ??
-        'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&h=400&fit=crop';
-
+  Widget _buildProfileHeader(bool isDark) {
     return Column(
       children: [
         Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.bottomLeft,
           children: [
+            // Cover Image
             Container(
               height: 200,
               width: double.infinity,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(coverUrl),
+                  image: NetworkImage(userInfo['cover']!),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -160,6 +141,7 @@ class _ProfileBodyState extends State<ProfileBody>
               ),
             ),
             
+            // Avatar (Đè lên cover)
             Positioned(
               bottom: -40,
               left: 20,
@@ -171,22 +153,20 @@ class _ProfileBodyState extends State<ProfileBody>
                 ),
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundImage:
-                      user.avatar != null ? NetworkImage(user.avatar!) : null,
-                  child: user.avatar == null
-                      ? const Icon(Icons.person, size: 40)
-                      : null,
+                  backgroundImage: NetworkImage(userInfo['avatar']!),
                 ),
               ),
             ),
           ],
         ),
 
+        // Info Section
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Button Row (Edit Profile)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -210,10 +190,11 @@ class _ProfileBodyState extends State<ProfileBody>
               
               const SizedBox(height: 8),
 
+              // Name & Handle
               Row(
                 children: [
                   Text(
-                    user.fullName,
+                    userInfo['name']!,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -225,14 +206,15 @@ class _ProfileBodyState extends State<ProfileBody>
                 ],
               ),
               Text(
-                '@${user.email.split('@').first}',
-                style: const TextStyle(color: AppTheme.slate500, fontSize: 14),
+                userInfo['handle']!,
+                style: TextStyle(color: AppTheme.slate500, fontSize: 14),
               ),
 
               const SizedBox(height: 12),
 
+              // Bio
               Text(
-                'Bio đang cập nhật...',
+                userInfo['bio']!,
                 style: TextStyle(
                   color: isDark ? Colors.white.withOpacity(0.9) : AppTheme.slate800,
                   fontSize: 14,
@@ -242,29 +224,29 @@ class _ProfileBodyState extends State<ProfileBody>
 
               const SizedBox(height: 16),
 
+              // Location & Joined
               Row(
                 children: [
-                  const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.slate500),
+                  Icon(Icons.location_on_outlined, size: 16, color: AppTheme.slate500),
                   const SizedBox(width: 4),
-                  const Text('Đang cập nhật',
-                      style: TextStyle(
-                          color: AppTheme.slate500, fontSize: 13)),
+                  Text(userInfo['location']!, style: TextStyle(color: AppTheme.slate500, fontSize: 13)),
                   const SizedBox(width: 16),
-                  const Icon(Icons.calendar_month_outlined, size: 16, color: AppTheme.slate500),
+                  Icon(Icons.calendar_month_outlined, size: 16, color: AppTheme.slate500),
                   const SizedBox(width: 4),
-                  const Text("Joined Jan 2023", style: TextStyle(color: AppTheme.slate500, fontSize: 13)),
+                  Text("Joined Jan 2023", style: TextStyle(color: AppTheme.slate500, fontSize: 13)),
                 ],
               ),
 
               const SizedBox(height: 16),
 
+              // Stats Row
               Row(
                 children: [
-                  _buildStatItem(isDark, '0', "Posts"),
+                  _buildStatItem(isDark, userInfo['posts']!, "Posts"),
                   const SizedBox(width: 24),
-                  _buildStatItem(isDark, '0', "Followers"),
+                  _buildStatItem(isDark, userInfo['followers']!, "Followers"),
                   const SizedBox(width: 24),
-                  _buildStatItem(isDark, '0', "Following"),
+                  _buildStatItem(isDark, userInfo['following']!, "Following"),
                 ],
               ),
             ],
@@ -328,7 +310,7 @@ class _ProfileBodyState extends State<ProfileBody>
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppTheme.slate500,
             fontSize: 14,
           ),
