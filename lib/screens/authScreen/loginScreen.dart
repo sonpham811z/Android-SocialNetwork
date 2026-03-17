@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_social_app/config/environment.dart';
 import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../providers/authProvider.dart';
-import '../providers/themeProvider.dart';
-import '../widgets/customTextField.dart';
-import '../widgets/googleButton.dart';
-import '../config/theme.dart';
-import '../services/authService.dart';
-import '../config/environment.dart';
+import '../../providers/authProvider.dart';
+import '../../providers/themeProvider.dart';
+import '../../widgets/customTextField.dart';
+import '../../widgets/googleButton.dart';
+import '../../config/theme.dart';
+import '../../services/authService.dart';
+import '../../config/environment.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -75,8 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (googleUser != null) {
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
         final credential = googleAuth.idToken;
-        print("concncncndshfuhduhsfudhfhsdf $credential");
-
 
         if (credential != null && mounted) {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -112,6 +110,100 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
+  }
+
+  void _showForgotPasswordDialog(BuildContext context, bool isDark) {
+    // Tạo 1 controller riêng cho dialog, lấy sẵn email ở ngoài (nếu có)
+    final resetEmailController = TextEditingController(text: _emailController.text);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          final authProvider = Provider.of<AuthProvider>(context);
+          
+          return AlertDialog(
+            backgroundColor: isDark ? AppTheme.slate900 : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(
+              'Forgot Password?',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
+            ),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Enter your registered email address and we will send you a link to reset your password.',
+                    style: TextStyle(color: isDark ? AppTheme.slate400 : AppTheme.slate500, fontSize: 14),
+                  ),
+                  const SizedBox(height: 20),
+                  CustomTextField(
+                    controller: resetEmailController,
+                    hintText: 'Email address',
+                    prefixIcon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Please enter your email';
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        return 'Invalid email';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: authProvider.isLoading ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: authProvider.isLoading 
+                  ? null 
+                  : () async {
+                      if (formKey.currentState!.validate()) {
+                        final success = await authProvider.forgotPassword(resetEmailController.text.trim());
+                        
+                        if (mounted) {
+                          if (success) {
+                            Navigator.pop(ctx); // Tắt dialog
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('If the email exists, a reset link has been sent!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(authProvider.error ?? 'Something went wrong'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      }
+                    },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.violetPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: authProvider.isLoading
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Send Reset Link', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        }
+      ),
+    );
   }
 
   @override
@@ -299,6 +391,26 @@ class _LoginScreenState extends State<LoginScreen> {
               }
               return null;
             },
+          ),
+
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => _showForgotPasswordDialog(context, isDark),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Forgot Password?',
+                style: TextStyle(
+                  color: AppTheme.violetPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
 

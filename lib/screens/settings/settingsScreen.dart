@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../config/theme.dart';
-import '../providers/authProvider.dart'; // Gọi authProvider để dùng hàm logout
+import '../../config/theme.dart';
+import 'changePasswordScreen.dart';
+import '../../providers/authProvider.dart'; // Gọi authProvider để dùng hàm logout
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -33,7 +34,18 @@ class SettingsScreen extends StatelessWidget {
           
           _buildSectionHeader('Account', isDark),
           _buildSettingItem(context, Icons.person_outline, 'Personal Information', isDark),
-          _buildSettingItem(context, Icons.shield_outlined, 'Security & Passwords', isDark),
+          _buildSettingItem(
+            context, 
+            Icons.shield_outlined, 
+            'Change Password', 
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+              );
+            },
+          ),
           
           const SizedBox(height: 24),
           
@@ -98,7 +110,8 @@ class SettingsScreen extends StatelessWidget {
   }
 
   // Widget từng dòng setting
-  Widget _buildSettingItem(BuildContext context, IconData icon, String title, bool isDark) {
+  // Thêm tham số VoidCallback? onTap
+  Widget _buildSettingItem(BuildContext context, IconData icon, String title, bool isDark, {VoidCallback? onTap}) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -116,8 +129,11 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.slate500),
-      onTap: () {
-        // TODO: Điều hướng vào chi tiết từng chức năng sau
+      onTap: onTap ?? () {
+        // Fallback nếu không truyền onTap
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Feature coming soon!')),
+        );
       },
     );
   }

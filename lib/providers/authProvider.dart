@@ -6,35 +6,48 @@ class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
 
   bool _isAuthenticated = false;
+  bool _isCheckingAuth = true;
   bool _isLoading = false;
   String? _error;
   UserData? _user;
 
   bool get isAuthenticated => _isAuthenticated;
+  bool get isCheckingAuth => _isCheckingAuth;
   bool get isLoading => _isLoading;
   String? get error => _error;
   UserData? get user => _user;
 
   AuthProvider() {
-    _checkAuthStatus();
+    checkAuthStatus();
   }
 
-  Future<void> _checkAuthStatus() async {
-    _isAuthenticated = await _authService.isAuthenticated();
+  Future<void> checkAuthStatus() async {
+    _isCheckingAuth = true;
+    notifyListeners();
 
-    if (_isAuthenticated) {
-      final userData = await _authService.getCurrentUser();
-      if(userData != null)
-      {
-        _user = UserData(
-          id: userData['sub']?.toString() ?? userData['id']?.toString() ?? '',
-          email: userData['email'] ?? '',
-          firstName: userData['firstName'] ?? '',
-          lastName: userData['lastName'] ?? '',
-          isEmailConfirmed: userData['isEmailConfirmed'] ?? false,
-        );
+    try {
+      _isAuthenticated = await _authService.isAuthenticated();
+
+      if (_isAuthenticated) {
+        final userData = await _authService.getCurrentUser();
+        if(userData != null) {
+          _user = UserData(
+            id: userData['sub']?.toString() ?? userData['id']?.toString() ?? '',
+            email: userData['email'] ?? '',
+            firstName: userData['firstName'] ?? '',
+            lastName: userData['lastName'] ?? '',
+            isEmailConfirmed: userData['isEmailConfirmed'] ?? false,
+          );
+        }
+      } else {
+        _user = null;
       }
-
+    } catch (e) {
+      _isAuthenticated = false;
+      _user = null;
+    } finally {
+      // BẮT BUỘC PHẢI CÓ: Chạy xong thì tắt cờ loading và báo UI cập nhật
+      _isCheckingAuth = false;
       notifyListeners();
     }
   }
@@ -94,6 +107,47 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final changePasswordData = ChangePasswordData(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+
+      final response = await _authService.changePassword(changePasswordData);
+      
+      if(response) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = 'Đổi mật khẩu thất bại, vui lòng thử lại.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } on ApiError catch (e) {
+      _error = (e.errors != null && e.errors!.isNotEmpty) 
+          ? e.errors!.join('\n') 
+          : e.message;
+          
+      _isLoading = false;
+      notifyListeners();
+      return false;
+      
+    } catch (e) {
+      // Bắt các lỗi vặt khác (mất mạng, sập app...)
+      _error = 'Đã xảy ra lỗi hệ thống: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+    
+  }
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _error = null;
@@ -129,6 +183,34 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> forgotPassword(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Gọi qua AuthService
+      final success = await _authService.forgotPassword(email);
+      
+      _isLoading = false;
+      notifyListeners();
+      return success;
+      
+    } on ApiError catch (e) {
+      _error = (e.errors != null && e.errors!.isNotEmpty) 
+          ? e.errors!.join('\n') 
+          : e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = 'Đã xảy ra lỗi hệ thống: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;
@@ -187,6 +269,33 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  
+   Future<bool> resetPassword(String token, String newPassword) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final success = await _authService.resetPassword(token, newPassword);
+
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } on ApiError catch (e) {
+      _error = (e.errors != null && e.errors!.isNotEmpty)
+        ? e.errors!.join('\n')
+        : e.message;
+        _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = 'Đã xảy ra lỗi hệ thống: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+    }
 
   // Refresh user data from token
   Future<void> refreshUserData() async {

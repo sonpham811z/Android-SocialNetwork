@@ -30,6 +30,21 @@ class RegisterData {
   };
 }
 
+class ChangePasswordData {
+  final String currentPassword;
+  final String newPassword;
+
+  ChangePasswordData({
+    required this.currentPassword,
+    required this.newPassword,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'currentPassword': currentPassword,
+    'newPassword': newPassword,
+  };
+}
+
 class LoginData {
   final String email;
   final String password;
@@ -185,6 +200,7 @@ class AuthService {
 
       if(authResponse.success && authResponse.data != null) {
         await _apiClient.secureStorage.write(key: 'accessToken', value: authResponse.data!.accessToken);
+        await _apiClient.secureStorage.write(key: 'refreshToken', value: authResponse.data!.refreshToken);
       }
 
       return authResponse;
@@ -214,6 +230,8 @@ class AuthService {
           key: 'accessToken',
           value: authResponse.data!.accessToken,
         );
+        await _apiClient.secureStorage.write(key: 'refreshToken', value: authResponse.data!.refreshToken);
+
       }
 
       return authResponse;
@@ -229,6 +247,49 @@ class AuthService {
       throw ApiError(
         success: false,
         message: 'Login failed: ${e.toString()}',
+      );
+    }
+  }
+
+  // --- Nằm trong authService.dart ---
+  Future<bool> changePassword(ChangePasswordData data) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/auth/change-password',
+        data: data.toJson(),
+      );
+
+      // Nếu HTTP 200 OK và success = true
+      if (response.data != null && response.data['success'] == true) {
+        return true;
+      }
+      
+      // Nếu HTTP 200 OK nhưng success = false (dù C# đang trả 400, cứ rào trước cho chắc)
+      throw ApiError(
+        success: false,
+        message: response.data['message'] ?? 'Đổi mật khẩu thất bại',
+      );
+
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.data != null) {
+        final responseData = e.response!.data;
+
+        if (responseData is Map<String, dynamic>) {
+          throw ApiError(
+            success: false,
+            message: responseData['message'] ?? 'Mật khẩu không chính xác!',
+          );
+        } 
+        // Nếu trả về text HTML (404 Not Found, 500 Server Error)
+        else {
+          throw ApiError(success: false, message: responseData.toString());
+        }
+      }
+      
+      // Nếu sập mạng, không có response
+      throw ApiError(
+        success: false,
+        message: 'Lỗi kết nối: ${e.message}',
       );
     }
   }
@@ -270,12 +331,20 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     try {
-      // Call logout API
-      await _apiClient.dio.post('/auth/logout');
+      // 1. Lấy Refresh Token từ kho ra
+      final refreshToken = await _apiClient.secureStorage.read(key: 'refreshToken');
+
+      await _apiClient.dio.post(
+        '/auth/logout',
+        data: {
+          'refreshToken': refreshToken ?? '', 
+        },
+      );
     } catch (e) {
-      print('Logout error: $e');
+      // Có lỗi thì in ra để debug
+      print('Logout error (Nhưng không sao, vẫn cho user out): $e');
     } finally {
-      // Always clear auth data locally
+      // 3. Xóa sạch mọi thứ ở Local
       await _apiClient.clearAuth();
     }
   }
@@ -306,5 +375,66 @@ class AuthService {
   Future<String?> getAccessToken() async {
     return await _apiClient.secureStorage.read(key: 'accessToken');
   }
+
+  // Bắn API xin link Forgot Password
+  Future<bool> forgotPassword(String email) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/auth/forgot-password',
+        data: {'email': email},
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        return true;
+      }
+      
+      throw ApiError(
+        success: false, 
+        message: response.data['message'] ?? 'Gửi yêu cầu thất bại'
+      );
+
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          throw ApiError.fromJson(responseData);
+        } else {
+          throw ApiError(success: false, message: responseData.toString());
+        }
+      }
+      throw ApiError(success: false, message: 'Lỗi kết nối: ${e.message}');
+    } catch (e) {
+      throw ApiError(success: false, message: e.toString());
+    }
+  }
+
+ 
+
+  Future<bool> resetPassword(String token, String newPassword) async {
+    try {
+      final response = await _apiClient.dio.post('/auth/reset-password', data: {
+        'token': token,
+        'newPassword': newPassword,
+      });
+
+      if (response.data != null && response.data['success'] == true) {
+        return true;
+      }
+
+      throw ApiError(success: false, message: response.data['message'] ?? 'Đặt lại mật khẩu thất bại');
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          throw ApiError.fromJson(responseData);
+        } else {
+          throw ApiError(success: false, message: responseData.toString());
+        }
+      }
+      throw ApiError(success: false, message: 'Lỗi kết nối: ${e.message}');
+    }
+  }
+
+  
 }
 
