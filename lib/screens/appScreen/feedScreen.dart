@@ -11,7 +11,7 @@ import '../../widgets/feed/createPostModal.dart';
 import '../../widgets/feed/voicePlayer.dart';
 import '../../widgets/messages/messageListBody.dart';
 import '../../widgets/profile/profileBody.dart'; // [IMPORT MỚI]
-
+import 'notificationScreen.dart';
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
@@ -46,10 +46,11 @@ class _FeedScreenState extends State<FeedScreen> {
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     int getStackIndex(int tabIndex) {
-      if (tabIndex == 5) return 1; // 5 là Avatar -> ProfileBody
-      if (tabIndex == 3) return 2; // 3 là Message Icon -> MessageListBody
-      return 0;
-    }
+        if (tabIndex == 5) return 1; // profile
+        if (tabIndex == 3) return 2; // message
+        if (tabIndex == 4) return 3; // 🔥 notification (quan trọng)
+        return 0;
+      }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F10),
@@ -118,6 +119,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
                 // INDEX 2: MESSAGE LIST BODY (MỚI THÊM NÈ)
                 const MessageListBody(),
+                const NotificationScreen(),
               ],
             ),
           ),
