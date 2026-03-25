@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_social_app/screens/appScreen/friendRequestScreen.dart';
+import 'package:flutter_social_app/screens/appScreen/homeScreen.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../widgets/feed/feedHeader.dart';
@@ -8,10 +10,10 @@ import '../../widgets/feed/postCard.dart';
 import '../../widgets/feed/rightSidebar.dart';
 import '../../widgets/feed/floatingDock.dart';
 import '../../widgets/feed/createPostModal.dart';
-import '../../widgets/feed/voicePlayer.dart';
 import '../../widgets/messages/messageListBody.dart';
-import '../../widgets/profile/profileBody.dart'; // [IMPORT MỚI]
+import '../../widgets/profile/profileBody.dart'; 
 import 'notificationScreen.dart';
+
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
@@ -22,7 +24,7 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   bool _showCreateModal = false;
   String? _expandedPostId;
-  int _currentTabIndex = 0; // [MỚI] Biến theo dõi đang ở Feed hay Profile
+  int _currentTabIndex = 0; 
 
   void _toggleCreateModal() {
     setState(() => _showCreateModal = !_showCreateModal);
@@ -32,10 +34,9 @@ class _FeedScreenState extends State<FeedScreen> {
     setState(() => _expandedPostId = _expandedPostId == postId ? null : postId);
   }
 
-  // Hàm chuyển tab khi bấm Dock
   void _handleTabChange(int index) {
     setState(() {
-      _currentTabIndex = index;
+      _currentTabIndex = index; 
     });
   }
 
@@ -45,24 +46,25 @@ class _FeedScreenState extends State<FeedScreen> {
     final isDesktop = size.width > 1024;
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
+    // Logic xác định trang nào hiển thị trong IndexedStack
     int getStackIndex(int tabIndex) {
-        if (tabIndex == 5) return 1; // profile
-        if (tabIndex == 3) return 2; // message
-        if (tabIndex == 4) return 3; // 🔥 notification (quan trọng)
-        return 0;
-      }
-
+        if (tabIndex == 0) return 0; // Trang chủ (Feed)
+        if (tabIndex == 2) return 4; // NHẤN NÚT BẠN BÈ -> HIỆN TRANG INDEX 4
+        if (tabIndex == 3) return 2; // Message
+        if (tabIndex == 4) return 3; // Notification
+        if (tabIndex == 5) return 1; // Profile
+        return 0; // Mặc định
+    }
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F10),
       body: Stack(
         children: [
-          // 1. NỘI DUNG CHÍNH (Thay đổi theo tab)
           SafeArea(
             bottom: false,
-            child: IndexedStack( // Dùng IndexedStack để giữ trạng thái khi chuyển tab
-              index: getStackIndex(_currentTabIndex), // Nếu index=5 (Avatar) thì hiện Profile (1), còn lại Feed (0)
+            child: IndexedStack( 
+              index: getStackIndex(_currentTabIndex),
               children: [
-                // INDEX 0: FEED BODY (Code cũ của bro)
+                // INDEX 0: FEED
                 Column(
                   children: [
                     FeedHeader(onCreatePost: _toggleCreateModal),
@@ -113,31 +115,30 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                   ],
                 ),
-
-                // INDEX 1: PROFILE BODY (Code mới)
+                // INDEX 1: PROFILE
                 const ProfileBody(),
-
-                // INDEX 2: MESSAGE LIST BODY (MỚI THÊM NÈ)
+                // INDEX 2: MESSAGE
                 const MessageListBody(),
+                // INDEX 3: NOTIFICATION
                 const NotificationScreen(),
+                /// INDEX 4: FRIEND REQUEST
+                 const FriendRequestScreen()
               ],
             ),
           ),
 
-          // 2. FLOATING DOCK (Luôn nổi ở trên)
           if (!isKeyboardVisible)
             FloatingDock(
               activeIndex: _currentTabIndex,
-              onTabSelected: _handleTabChange, // Truyền hàm xử lý vào
+              onTabSelected: _handleTabChange, 
             ),
 
-          // 3. MODAL
           if (_showCreateModal)
             CreatePostModal(onClose: _toggleCreateModal),
         ],
       ),
     );
-  }
+  } // <--- Thêm dấu đóng hàm build ở đây
 
   Widget _buildFeedHeader() {
     return Row(
@@ -151,9 +152,9 @@ class _FeedScreenState extends State<FeedScreen> {
             color: Colors.white,
           ),
         ),
-         IconButton(
-           icon: Icon(Icons.tune, color: AppTheme.slate400),
-           onPressed: () {},
+        IconButton(
+          icon: const Icon(Icons.tune, color: AppTheme.slate400),
+          onPressed: () {},
         ),
       ],
     );
