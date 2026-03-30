@@ -12,7 +12,7 @@ import 'screens/appScreen/homeScreen.dart';
 import 'config/theme.dart';
 import 'widgets/authGuard/authGuard.dart';
 import 'screens/authScreen/resetPasswordScreen.dart';
-
+import 'screens/appScreen/friendRequestScreen.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -121,6 +121,7 @@ class _MyAppState extends State<MyApp> {
               '/login': (context) => const LoginScreen(),
               '/signup': (context) => const SignupScreen(),
               '/home': (context) => const AuthGuard(child: HomeScreen()),
+              '/friend-requests': (context) => FriendRequestScreen(),
             },
           );
         },
