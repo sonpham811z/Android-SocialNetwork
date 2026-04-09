@@ -8,7 +8,7 @@ import '../config/environment.dart';
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
-  
+
   late Dio dio;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final CookieJar _cookieJar = CookieJar();
@@ -16,13 +16,12 @@ class ApiClient {
   ApiClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: Environment.baseUrl,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        connectTimeout: const Duration(seconds: 50),
-        receiveTimeout: const Duration(seconds: 50)
-      ),
+          baseUrl: Environment.baseUrl,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          connectTimeout: const Duration(seconds: 50),
+          receiveTimeout: const Duration(seconds: 50)),
     );
 
     dio.interceptors.add(CookieManager(_cookieJar));
@@ -31,21 +30,21 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _secureStorage.read(key: 'accessToken'); // get token from secure storage
+          final token = await _secureStorage.read(
+              key: 'accessToken'); // get token from secure storage
 
-          if(token != null) {
+          if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          
+
           return handler.next(options);
         },
         onError: (error, handler) async {
-          if(error.response?.statusCode == 401)
-          {
+          if (error.response?.statusCode == 401) {
             final requestOptions = error.requestOptions;
 
-            if(requestOptions.extra['_retry'] != true) {
-              requestOptions.extra['retry'] = true;
+            if (requestOptions.extra['_retry'] != true) {
+              requestOptions.extra['_retry'] = true;
 
               try {
                 final refreshResponse = await dio.post(
@@ -55,20 +54,21 @@ class ApiClient {
                   ),
                 );
 
-                if (refreshResponse.statusCode == 200)
-                {
-                  final newAcessToken = refreshResponse.data['data']['accessToken'];
+                if (refreshResponse.statusCode == 200) {
+                  final newAcessToken =
+                      refreshResponse.data['data']['accessToken'];
 
                   //save new token at keyStore
-                  await _secureStorage.write(key: 'accessToken', value: newAcessToken);
+                  await _secureStorage.write(
+                      key: 'accessToken', value: newAcessToken);
 
-                  requestOptions.headers['Authorization'] = 'Bearer $newAcessToken';
+                  requestOptions.headers['Authorization'] =
+                      'Bearer $newAcessToken';
 
                   final response = await dio.fetch(requestOptions);
 
                   return handler.resolve(response);
                 }
-
               } catch (refreshError) {
                 await _secureStorage.delete(key: 'accessToken');
 
@@ -76,7 +76,7 @@ class ApiClient {
               }
             }
           }
-          
+
           return handler.next(error);
         },
       ),
@@ -90,7 +90,7 @@ class ApiClient {
 
   //Clear auth data
 
-  Future<void> clearAuth() async{
+  Future<void> clearAuth() async {
     await _secureStorage.delete(key: 'accessToken');
     _cookieJar.deleteAll();
   }
