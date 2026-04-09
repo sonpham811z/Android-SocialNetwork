@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:app_links/app_links.dart'; 
+import 'package:app_links/app_links.dart';
 
 import 'providers/authProvider.dart';
+import 'providers/friendProvider.dart';
 import 'providers/themeProvider.dart';
 import 'providers/userProfileProvider.dart';
 import 'screens/authScreen/loginScreen.dart';
@@ -13,6 +14,7 @@ import 'config/theme.dart';
 import 'widgets/authGuard/authGuard.dart';
 import 'screens/authScreen/resetPasswordScreen.dart';
 import 'screens/appScreen/friendRequestScreen.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -28,7 +30,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   // Tạo GlobalKey để điều hướng mà không cần truyền context trực tiếp
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  
+
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
@@ -70,7 +72,6 @@ class _MyAppState extends State<MyApp> {
     debugPrint('Ngon lành, bắt được deep link: $uri');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      
       // Lúc này chắc chắn Navigator đã sẵn sàng
       if (uri.scheme == 'socialapp' && uri.host == 'login') {
         _navigatorKey.currentState?.pushReplacementNamed('/login');
@@ -78,7 +79,7 @@ class _MyAppState extends State<MyApp> {
 
       if (uri.path == '/reset-password' || uri.host == 'reset-password') {
         final String? resetToken = uri.queryParameters['token'];
-        
+
         if (resetToken != null && resetToken.isNotEmpty) {
           _navigatorKey.currentState?.push(
             MaterialPageRoute(
@@ -99,6 +100,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProfileProvider()),
+        ChangeNotifierProvider(create: (_) => FriendProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
