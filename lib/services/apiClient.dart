@@ -47,51 +47,20 @@ class ApiClient {
               requestOptions.extra['_retry'] = true;
 
               try {
-                final refreshToken = await _secureStorage.read(key: 'refreshToken');
-
-                if (refreshToken == null || refreshToken.isEmpty) {
-                  await clearAuth();
-                  return handler.reject(error);
-                }
-
                 final refreshResponse = await dio.post(
                   '/auth/refresh-token',
-                  data: {
-                    'refreshToken': refreshToken,
-                  },
                   options: Options(
                     extra: {'_retry': true},
                   ),
                 );
 
                 if (refreshResponse.statusCode == 200) {
-                  final responseData = refreshResponse.data;
-                  final payload = responseData is Map<String, dynamic>
-                      ? (responseData['data'] ?? responseData['Data']) as Map<String, dynamic>?
-                      : null;
-
-                  if (payload == null) {
-                    await clearAuth();
-                    return handler.reject(error);
-                  }
-
                   final newAcessToken =
-                      (payload['accessToken'] ?? payload['AccessToken'])?.toString();
-                  final newRefreshToken =
-                      (payload['refreshToken'] ?? payload['RefreshToken'])?.toString();
-
-                  if (newAcessToken == null || newAcessToken.isEmpty) {
-await clearAuth();
-                    return handler.reject(error);
-                  }
+                      refreshResponse.data['data']['accessToken'];
 
                   //save new token at keyStore
                   await _secureStorage.write(
                       key: 'accessToken', value: newAcessToken);
-                  if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
-                    await _secureStorage.write(
-                        key: 'refreshToken', value: newRefreshToken);
-                  }
 
                   requestOptions.headers['Authorization'] =
                       'Bearer $newAcessToken';
@@ -101,7 +70,7 @@ await clearAuth();
                   return handler.resolve(response);
                 }
               } catch (refreshError) {
-                await clearAuth();
+                await _secureStorage.delete(key: 'accessToken');
 
                 return handler.reject(error);
               }
@@ -123,7 +92,6 @@ await clearAuth();
 
   Future<void> clearAuth() async {
     await _secureStorage.delete(key: 'accessToken');
-    await _secureStorage.delete(key: 'refreshToken');
     _cookieJar.deleteAll();
   }
 }
