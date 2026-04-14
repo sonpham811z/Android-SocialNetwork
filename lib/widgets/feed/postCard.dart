@@ -7,12 +7,20 @@ class PostCard extends StatelessWidget {
   final Post post;
   final bool isExpanded; // Trạng thái đóng mở comment
   final VoidCallback onToggleComments;
+  final String? currentUserAvatar;
+  final VoidCallback? onToggleLike;
+  final Future<void> Function()? onLoadComments;
+  final Future<bool> Function(String content)? onSubmitComment;
 
   const PostCard({
     super.key,
     required this.post,
     this.isExpanded = false,
     required this.onToggleComments,
+    this.currentUserAvatar,
+    this.onToggleLike,
+    this.onLoadComments,
+    this.onSubmitComment,
   });
 
   @override
@@ -157,9 +165,12 @@ class PostCard extends StatelessWidget {
             children: [
               _buildInteractionButton(
                 context,
-                icon: Icons.favorite_border,
+                icon: post.isLikedByCurrentUser ? Icons.favorite : Icons.favorite_border,
                 label: '${post.likes}',
-                color: isDark ? Colors.white : AppTheme.slate900,
+                color: post.isLikedByCurrentUser
+                    ? Colors.redAccent
+                    : (isDark ? Colors.white : AppTheme.slate900),
+                onTap: onToggleLike,
               ),
               const SizedBox(width: 24),
               _buildInteractionButton(
@@ -167,7 +178,13 @@ class PostCard extends StatelessWidget {
                 icon: Icons.chat_bubble_outline,
                 label: '${post.commentsCount}',
                 color: isDark ? Colors.white : AppTheme.slate900,
-                onTap: onToggleComments, // Bấm vào đây để mở comment
+                onTap: () async {
+                  final willExpand = !isExpanded;
+                  onToggleComments();
+                  if (willExpand) {
+                    await onLoadComments?.call();
+                  }
+                },
               ),
               const SizedBox(width: 24),
               _buildInteractionButton(
@@ -224,7 +241,12 @@ class PostCard extends StatelessWidget {
               // Avatar người dùng hiện tại (Lấy tạm user của post làm demo)
               CircleAvatar(
                 radius: 16,
-                backgroundImage: NetworkImage(MockData.currentUser.avatar),
+                backgroundImage: (currentUserAvatar ?? '').trim().isEmpty
+                    ? null
+                    : NetworkImage(currentUserAvatar!.trim()),
+                child: (currentUserAvatar ?? '').trim().isEmpty
+                    ? const Icon(Icons.person, size: 16)
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -238,6 +260,14 @@ class PostCard extends StatelessWidget {
                     ),
                   ),
                   child: TextField(
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (value) async {
+                      final normalized = value.trim();
+                      if (normalized.isEmpty) {
+                        return;
+                      }
+                      await onSubmitComment?.call(normalized);
+                    },
                     style: TextStyle(
                       color: isDark ? Colors.white : Colors.black, 
                       fontSize: 14

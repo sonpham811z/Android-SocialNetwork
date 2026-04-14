@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-import '../../models/feedModel.dart';
 
 class StatusInput extends StatelessWidget {
   final VoidCallback onTap;
+  final String? avatarUrl;
 
   const StatusInput({
     super.key,
     required this.onTap,
+    this.avatarUrl,
   });
 
   @override
@@ -38,7 +39,7 @@ class StatusInput extends StatelessWidget {
                   ),
                   child: ClipOval(
                     child: Image.network(
-                      MockData.currentUser.avatar,
+                      (avatarUrl ?? '').trim(),
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_social_app/screens/appScreen/friendRequestScreen.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_social_app/screens/appScreen/homeScreen.dart';
 import '../../config/theme.dart';
-import '../../models/feedModel.dart';
+import '../../providers/authProvider.dart';
+import '../../providers/userProfileProvider.dart';
+import '../../providers/postProvider.dart';
 import '../../widgets/feed/feedHeader.dart';
-import '../../widgets/feed/storiesSection.dart';
 import '../../widgets/feed/statusInput.dart';
 import '../../widgets/feed/postCard.dart';
-import '../../widgets/feed/rightSidebar.dart';
 import '../../widgets/feed/floatingDock.dart';
 import '../../widgets/feed/createPostModal.dart';
 import '../../widgets/messages/messageListBody.dart';
@@ -26,6 +27,28 @@ class _FeedScreenState extends State<FeedScreen> {
   String? _expandedPostId;
   int _currentTabIndex = 0; 
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.isCheckingAuth) {
+        // Wait for auth check to complete before loading feed
+        late final VoidCallback listener;
+        listener = () {
+          if (!authProvider.isCheckingAuth) {
+            authProvider.removeListener(listener);
+            if (mounted) context.read<PostProvider>().loadFeed();
+          }
+        };
+        authProvider.addListener(listener);
+      } else {
+        context.read<PostProvider>().loadFeed();
+      }
+    });
+  }
+
   void _toggleCreateModal() {
     setState(() => _showCreateModal = !_showCreateModal);
   }
@@ -43,8 +66,10 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 1024;
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final postProvider = context.watch<PostProvider>();
+    final currentAvatar = context.watch<UserProfileProvider>().profile?.avatar;
+    final feedPosts = postProvider.feedPosts;
 
     // Logic xác định trang nào hiển thị trong IndexedStack
     int getStackIndex(int tabIndex) {
@@ -85,28 +110,62 @@ class _FeedScreenState extends State<FeedScreen> {
                                       children: [
                                         _buildFeedHeader(),
                                         const SizedBox(height: 24),
-                                        const StoriesSection(),
+                                        StatusInput(
+                                          onTap: _toggleCreateModal,
+                                          avatarUrl: currentAvatar,
+                                        ),
                                         const SizedBox(height: 24),
-                                        StatusInput(onTap: _toggleCreateModal),
-                                        const SizedBox(height: 24),
-                                        ...MockData.posts.map(
-                                          (post) => Padding(
-                                            padding: const EdgeInsets.only(bottom: 32),
-                                            child: PostCard(
-                                              post: post,
-                                              isExpanded: _expandedPostId == post.id,
-                                              onToggleComments: () => _toggleComments(post.id),
+                                        if (postProvider.isLoadingFeed && feedPosts.isEmpty)
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 32),
+                                            child: Center(child: CircularProgressIndicator()),
+                                          )
+                                        else if ((postProvider.error ?? '').isNotEmpty && feedPosts.isEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 16),
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  postProvider.error!,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(color: Colors.white70),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                ElevatedButton(
+                                                  onPressed: () => context.read<PostProvider>().loadFeed(forceRefresh: true),
+                                                  child: const Text('Tải lại bài viết'),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        else if (feedPosts.isEmpty)
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 24),
+                                            child: Text(
+                                              'Chưa có bài viết nào trong bảng tin.',
+                                              style: TextStyle(color: Colors.white70),
+                                            ),
+                                          )
+                                        else
+                                          ...feedPosts.map(
+                                            (post) => Padding(
+                                              padding: const EdgeInsets.only(bottom: 32),
+                                              child: PostCard(
+                                                post: post,
+                                                isExpanded: _expandedPostId == post.id,
+                                                onToggleComments: () => _toggleComments(post.id),
+                                                currentUserAvatar: currentAvatar,
+                                                onToggleLike: () => context.read<PostProvider>().toggleLike(post),
+                                                onLoadComments: () => context.read<PostProvider>().loadComments(post.id),
+                                                onSubmitComment: (content) =>
+                                                    context.read<PostProvider>().createComment(post.id, content),
+                                              ),
                                             ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
-                                if (isDesktop) ...[
-                                  const SizedBox(width: 40),
-                                  const RightSidebar(),
-                                ],
                               ],
                             ),
                           ),
@@ -130,7 +189,8 @@ class _FeedScreenState extends State<FeedScreen> {
           if (!isKeyboardVisible)
             FloatingDock(
               activeIndex: _currentTabIndex,
-              onTabSelected: _handleTabChange, 
+              onTabSelected: _handleTabChange,
+              avatarUrl: currentAvatar,
             ),
 
           if (_showCreateModal)
