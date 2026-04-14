@@ -34,7 +34,7 @@ dependencies:
   # UI Components
   cupertino_icons: ^1.0.2
   flutter_svg: ^2.0.9
-  
+  image_picker: ^1.1.2
   # Form Validation
   email_validator: ^2.1.17
   

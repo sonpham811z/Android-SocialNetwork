@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class UserProfile {
   final String id;
   final String name;
@@ -10,6 +12,34 @@ class UserProfile {
     required this.handle,
     required this.avatar,
   });
+
+  factory UserProfile.fromApi(Map<String, dynamic> json) {
+    // Try to get display name from multiple possible fields
+    String firstName = (json['firstName'] ?? '').toString().trim();
+    String lastName = (json['lastName'] ?? '').toString().trim();
+    String fullName = (json['fullName'] ?? '').toString().trim();
+    String name = (json['name'] ?? '').toString().trim();
+    
+    // Build display name with priority
+    String displayName = '';
+    if (name.isNotEmpty) {
+      displayName = name;
+    } else if (fullName.isNotEmpty) {
+      displayName = fullName;
+    } else if (firstName.isNotEmpty || lastName.isNotEmpty) {
+      displayName = '$firstName $lastName'.trim();
+    }
+    
+    // Get username with priority
+    String userName = (json['userName'] ?? json['username'] ?? json['UserName'] ?? json['Username'] ?? '').toString().trim();
+    
+    return UserProfile(
+      id: (json['id'] ?? '').toString(),
+      name: displayName.isEmpty ? 'Unknown User' : displayName,
+      handle: userName.isEmpty ? '@unknown' : '@$userName',
+      avatar: (json['profilePictureUrl'] ?? '').toString(),
+    );
+  }
 }
 
 class Comment {
@@ -24,6 +54,15 @@ class Comment {
     required this.content,
     required this.timestamp,
   });
+
+  factory Comment.fromApi(Map<String, dynamic> json) {
+    return Comment(
+      id: (json['id'] ?? '').toString(),
+      user: UserProfile.fromApi((json['user'] ?? <String, dynamic>{}) as Map<String, dynamic>),
+      content: (json['content'] ?? '').toString(),
+      timestamp: Post.formatTimestamp((json['createdAt'] ?? '').toString()),
+    );
+  }
 }
 
 class Post {
@@ -37,6 +76,7 @@ class Post {
   final String? audioDuration; // [NEW] Thời lượng (Optional, vd: "0:45")
   final int likes;
   final int commentsCount;
+  final bool isLikedByCurrentUser;
   final List<Comment>? commentsList;
 
   Post({
@@ -50,8 +90,103 @@ class Post {
     this.audioDuration, // [NEW]
     required this.likes,
     required this.commentsCount,
+    this.isLikedByCurrentUser = false,
     this.commentsList,
   });
+
+  factory Post.fromApi(Map<String, dynamic> json) {
+    final commentsRaw = json['comments'];
+    final comments = commentsRaw is List
+        ? commentsRaw
+            .whereType<Map>()
+            .map((item) => Comment.fromApi(item.cast<String, dynamic>()))
+            .toList()
+        : <Comment>[];
+
+    List<double>? waveform;
+    final waveformRaw = json['waveform'];
+    if (waveformRaw is List) {
+      waveform = waveformRaw
+          .map((item) => double.tryParse(item.toString()) ?? 0)
+          .toList();
+    }
+
+    return Post(
+      id: (json['id'] ?? '').toString(),
+      user: UserProfile.fromApi((json['user'] ?? <String, dynamic>{}) as Map<String, dynamic>),
+      content: (json['content'] ?? '').toString(),
+      timestamp: formatTimestamp((json['createdAt'] ?? '').toString()),
+      image: (json['imageUrl'] ?? '').toString().isEmpty ? null : (json['imageUrl']).toString(),
+      audioUrl: (json['audioUrl'] ?? '').toString().isEmpty ? null : (json['audioUrl']).toString(),
+      waveform: waveform,
+      audioDuration: (json['audioDuration'] ?? '').toString().isEmpty
+          ? null
+          : (json['audioDuration']).toString(),
+      likes: _toInt(json['likesCount']),
+      commentsCount: _toInt(json['commentsCount']),
+      isLikedByCurrentUser: _toBool(json['isLikedByCurrentUser']),
+      commentsList: comments,
+    );
+  }
+
+  Post copyWith({
+    int? likes,
+    int? commentsCount,
+    bool? isLikedByCurrentUser,
+    List<Comment>? commentsList,
+  }) {
+    return Post(
+      id: id,
+      user: user,
+      content: content,
+      timestamp: timestamp,
+      image: image,
+      audioUrl: audioUrl,
+      waveform: waveform,
+      audioDuration: audioDuration,
+      likes: likes ?? this.likes,
+      commentsCount: commentsCount ?? this.commentsCount,
+      isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      commentsList: commentsList ?? this.commentsList,
+    );
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static bool _toBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+    final normalized = (value ?? '').toString().toLowerCase();
+    return normalized == 'true' || normalized == '1';
+  }
+
+  static String formatTimestamp(String value) {
+    final date = DateTime.tryParse(value)?.toLocal();
+    if (date == null) {
+      return 'Vừa xong';
+    }
+
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) {
+      return 'Vừa xong';
+    }
+    if (diff.inHours < 1) {
+      return '${diff.inMinutes} phút trước';
+    }
+    if (diff.inDays < 1) {
+      return '${diff.inHours} giờ trước';
+    }
+    if (diff.inDays < 7) {
+      return '${diff.inDays} ngày trước';
+    }
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
 }
 
 class Story {

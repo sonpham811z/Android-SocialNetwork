@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-import '../../models/feedModel.dart'; // Import để lấy data Avatar
 
 class FloatingDock extends StatelessWidget {
   final int activeIndex;
   final Function(int) onTabSelected;
+  final String? avatarUrl;
 
   const FloatingDock({
     super.key,
     required this.activeIndex,
     required this.onTabSelected,
+    this.avatarUrl,
   });
 
  @override
@@ -138,8 +139,14 @@ class FloatingDock extends StatelessWidget {
           ),
           child: ClipOval(
             child: Image.network(
-              MockData.currentUser.avatar,
+              (avatarUrl ?? '').trim(),
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: const Color(0xFF2A2A2D),
+                  child: const Icon(Icons.person, color: Colors.white),
+                );
+              },
             ),
           ),
         ),

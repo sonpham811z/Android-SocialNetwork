@@ -5,42 +5,14 @@ import 'apiClient.dart';
 import '../config/environment.dart';
 
 class FriendService {
-  final Dio _dio;
+  final ApiClient _apiClient = ApiClient();
+  final String _baseUrl = Environment.friendServiceBaseUrl;
 
-  FriendService()
-      : _dio = Dio(
-          BaseOptions(
-            baseUrl: Environment.friendServiceBaseUrl,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            connectTimeout: const Duration(seconds: 50),
-            receiveTimeout: const Duration(seconds: 50),
-          ),
-        ) {
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final token = await ApiClient().secureStorage.read(key: 'accessToken');
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
-          handler.next(options);
-        },
-      ),
-    );
-  }
-
-  Exception _mapError(Object e, [String fallback = 'Friend service error']) {
+  // Xài chung hàm parse lỗi siêu việt từ ApiClient cho đồng bộ nha bro
+  Exception _mapError(Object e) {
     if (e is DioException) {
-      final data = e.response?.data;
-      if (data is Map<String, dynamic>) {
-        final msg = (data['message'] ?? data['Message'] ?? fallback).toString();
-        return Exception(msg);
-      }
-      return Exception(e.message ?? fallback);
+      return Exception(ApiClient.buildReadableErrorMessage(e));
     }
-
     return Exception(e.toString());
   }
 
@@ -49,8 +21,8 @@ class FriendService {
     int pageSize = 20,
   }) async {
     try {
-      final response = await _dio.get(
-        '/friends',
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/friends',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
 
@@ -62,7 +34,7 @@ class FriendService {
         ),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load friends');
+      throw _mapError(e);
     }
   }
 
@@ -73,8 +45,8 @@ class FriendService {
     int pageSize = 20,
   }) async {
     try {
-      final response = await _dio.get(
-        '/friends/$userId',
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/friends/$userId',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
 
@@ -86,32 +58,32 @@ class FriendService {
         ),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load user friends');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<List<String>>> getFriendIds() async {
     try {
-      final response = await _dio.get('/friends/ids');
+      final response = await _apiClient.dio.get('$_baseUrl/friends/ids');
 
       return FriendApiResponse.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => (raw as List<dynamic>).map((e) => e.toString()).toList(),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load friend IDs');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> unfriend(String targetUserId) async {
     try {
-      final response = await _dio.delete('/friends/$targetUserId');
+      final response = await _apiClient.dio.delete('$_baseUrl/friends/$targetUserId');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to unfriend');
+      throw _mapError(e);
     }
   }
 
@@ -119,21 +91,21 @@ class FriendService {
     String userId,
   ) async {
     try {
-      final response = await _dio.get('/friends/summary/$userId');
+      final response = await _apiClient.dio.get('$_baseUrl/friends/summary/$userId');
       return FriendApiResponse.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => SocialSummaryModel.fromJson(raw as Map<String, dynamic>),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load social summary');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> sendFriendRequest(
       String receiverId) async {
     try {
-      final response = await _dio.post(
-        '/friends/requests',
+      final response = await _apiClient.dio.post(
+        '$_baseUrl/friends/requests',
         data: {'receiverId': receiverId},
       );
 
@@ -142,43 +114,43 @@ class FriendService {
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to send friend request');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> acceptRequest(String requestId) async {
     try {
-      final response = await _dio.put('/friends/requests/$requestId/accept');
+      final response = await _apiClient.dio.put('$_baseUrl/friends/requests/$requestId/accept');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to accept request');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> declineRequest(String requestId) async {
     try {
-      final response = await _dio.put('/friends/requests/$requestId/decline');
+      final response = await _apiClient.dio.put('$_baseUrl/friends/requests/$requestId/decline');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to decline request');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> cancelRequest(String requestId) async {
     try {
-      final response = await _dio.delete('/friends/requests/$requestId');
+      final response = await _apiClient.dio.delete('$_baseUrl/friends/requests/$requestId');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to cancel request');
+      throw _mapError(e);
     }
   }
 
@@ -188,8 +160,8 @@ class FriendService {
     int pageSize = 20,
   }) async {
     try {
-      final response = await _dio.get(
-        '/friends/requests/sent',
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/friends/requests/sent',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
@@ -200,7 +172,7 @@ class FriendService {
         ),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load sent requests');
+      throw _mapError(e);
     }
   }
 
@@ -210,8 +182,8 @@ class FriendService {
     int pageSize = 20,
   }) async {
     try {
-      final response = await _dio.get(
-        '/friends/requests/received',
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/friends/requests/received',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
@@ -222,31 +194,31 @@ class FriendService {
         ),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load received requests');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> follow(String followeeId) async {
     try {
-      final response = await _dio.post('/follows/$followeeId');
+      final response = await _apiClient.dio.post('$_baseUrl/follows/$followeeId');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to follow user');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> unfollow(String followeeId) async {
     try {
-      final response = await _dio.delete('/follows/$followeeId');
+      final response = await _apiClient.dio.delete('$_baseUrl/follows/$followeeId');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to unfollow user');
+      throw _mapError(e);
     }
   }
 
@@ -256,8 +228,8 @@ class FriendService {
     int pageSize = 20,
   }) async {
     try {
-      final response = await _dio.get(
-        '/follows/followers/$userId',
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/follows/followers/$userId',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
@@ -268,7 +240,7 @@ class FriendService {
         ),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load followers');
+      throw _mapError(e);
     }
   }
 
@@ -278,8 +250,8 @@ class FriendService {
     int pageSize = 20,
   }) async {
     try {
-      final response = await _dio.get(
-        '/follows/following/$userId',
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/follows/following/$userId',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
@@ -290,31 +262,31 @@ class FriendService {
         ),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load following users');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> blockUser(String blockedId) async {
     try {
-      final response = await _dio.post('/blocks/$blockedId');
+      final response = await _apiClient.dio.post('$_baseUrl/blocks/$blockedId');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to block user');
+      throw _mapError(e);
     }
   }
 
   Future<FriendApiResponse<dynamic>> unblockUser(String blockedId) async {
     try {
-      final response = await _dio.delete('/blocks/$blockedId');
+      final response = await _apiClient.dio.delete('$_baseUrl/blocks/$blockedId');
       return FriendApiResponse<dynamic>.fromJson(
         response.data as Map<String, dynamic>,
         (raw) => raw,
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to unblock user');
+      throw _mapError(e);
     }
   }
 
@@ -323,8 +295,8 @@ class FriendService {
     int pageSize = 20,
   }) async {
     try {
-      final response = await _dio.get(
-        '/blocks',
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/blocks',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
 
@@ -336,7 +308,7 @@ class FriendService {
         ),
       );
     } catch (e) {
-      throw _mapError(e, 'Failed to load blocked users');
+      throw _mapError(e);
     }
   }
 }
