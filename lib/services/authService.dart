@@ -20,14 +20,14 @@ class RegisterData {
     required this.gender,
   });
 
-   Map<String, dynamic> toJson() => {
-    'email': email,
-    'password': password,
-    'firstName': firstName,
-    'lastName': lastName,
-    'dateOfBirth': dateOfBirth,
-    'gender': gender,
-  };
+  Map<String, dynamic> toJson() => {
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'lastName': lastName,
+        'dateOfBirth': dateOfBirth,
+        'gender': gender,
+      };
 }
 
 class ChangePasswordData {
@@ -40,9 +40,9 @@ class ChangePasswordData {
   });
 
   Map<String, dynamic> toJson() => {
-    'currentPassword': currentPassword,
-    'newPassword': newPassword,
-  };
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      };
 }
 
 class LoginData {
@@ -55,9 +55,9 @@ class LoginData {
   });
 
   Map<String, dynamic> toJson() => {
-    'email': email,
-    'password': password,
-  };
+        'email': email,
+        'password': password,
+      };
 }
 
 class UserData {
@@ -86,12 +86,12 @@ class UserData {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'email': email,
-    'firstName': firstName,
-    'lastName': lastName,
-    'isEmailConfirmed': isEmailConfirmed,
-  };
+        'id': id,
+        'email': email,
+        'firstName': firstName,
+        'lastName': lastName,
+        'isEmailConfirmed': isEmailConfirmed,
+      };
 
   String get fullName => '$firstName $lastName';
 }
@@ -111,10 +111,10 @@ class AuthResponseData {
 
   factory AuthResponseData.fromJson(Map<String, dynamic> json) {
     return AuthResponseData(
-      accessToken: json['accessToken'] ?? '',
-      refreshToken: json['refreshToken'] ?? '',
-      expiresAt: json['expiresAt'] ?? '',
-      user: UserData.fromJson(json['user'] ?? {}),
+      accessToken: (json['accessToken'] ?? json['AccessToken'] ?? '').toString(),
+      refreshToken: (json['refreshToken'] ?? json['RefreshToken'] ?? '').toString(),
+      expiresAt: (json['expiresAt'] ?? json['ExpiresAt'] ?? '').toString(),
+      user: UserData.fromJson((json['user'] ?? json['User'] ?? const <String, dynamic>{}) as Map<String, dynamic>),
     );
   }
 }
@@ -131,12 +131,15 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    final dataRaw = json['data'] ?? json['Data'];
     return AuthResponse(
-      success: json['success'] ?? false,
-      message: json['message'] ?? '',
-      data: json['data'] != null 
-          ? AuthResponseData.fromJson(json['data']) 
-          : null,
+      success: (json['success'] ?? json['Success'] ?? false) == true,
+      message: (json['message'] ?? json['Message'] ?? '').toString(),
+      data: dataRaw is Map<String, dynamic>
+          ? AuthResponseData.fromJson(dataRaw)
+          : dataRaw is Map
+              ? AuthResponseData.fromJson(dataRaw.cast<String, dynamic>())
+              : null,
     );
   }
 }
@@ -157,11 +160,11 @@ class ApiError {
 
     if (json['errors'] != null) {
       parsedErrors = [];
-      
+
       // Trường hợp 1: Backend trả về 1 mảng (List) bình thường
       if (json['errors'] is List) {
         parsedErrors = List<String>.from(json['errors']);
-      } 
+      }
       // Trường hợp 2: Backend trả về 1 cục Map (ví dụ lỗi Validation của ASP.NET)
       else if (json['errors'] is Map) {
         final errorMap = json['errors'] as Map<String, dynamic>;
@@ -188,25 +191,32 @@ class ApiError {
 class AuthService {
   final ApiClient _apiClient = ApiClient();
 
+  bool _hasValidTokens(AuthResponse response) {
+    final access = response.data?.accessToken.trim() ?? '';
+    final refresh = response.data?.refreshToken.trim() ?? '';
+    return access.isNotEmpty && refresh.isNotEmpty;
+  }
+
   //register
   Future<AuthResponse> register(RegisterData data) async {
     try {
-      final response = await _apiClient.dio.post(
-        '/auth/register',
-        data: data.toJson()
-      );
+      final response = await _apiClient.dio.post('/auth/register', data: data.toJson());
 
       final authResponse = AuthResponse.fromJson(response.data);
 
-      if(authResponse.success && authResponse.data != null) {
+      if (authResponse.success && authResponse.data != null && _hasValidTokens(authResponse)) {
         await _apiClient.secureStorage.write(key: 'accessToken', value: authResponse.data!.accessToken);
         await _apiClient.secureStorage.write(key: 'refreshToken', value: authResponse.data!.refreshToken);
+        
+        // Nạp token vào RAM ngay lập tức
+        _apiClient.setToken(authResponse.data!.accessToken);
+      } else if (authResponse.success) {
+        throw ApiError(success: false, message: 'Phản hồi đăng ký thiếu token xác thực.');
       }
 
       return authResponse;
-    }on DioException catch (e) {
-      if(e.response != null) 
-      {
+    } on DioException catch (e) {
+      if (e.response != null) {
         throw ApiError.fromJson(e.response!.data);
       }
       throw ApiError(success: false, message: 'Registration failed: ${e.message}');
@@ -215,7 +225,7 @@ class AuthService {
     }
   }
 
-   Future<AuthResponse> login(LoginData data) async {
+  Future<AuthResponse> login(LoginData data) async {
     try {
       final response = await _apiClient.dio.post(
         '/auth/login',
@@ -224,14 +234,18 @@ class AuthService {
 
       final authResponse = AuthResponse.fromJson(response.data);
 
-      if (authResponse.success && authResponse.data != null) {
+      if (authResponse.success && authResponse.data != null && _hasValidTokens(authResponse)) {
         // Save access token to secure storage (expires in 15 minutes)
         await _apiClient.secureStorage.write(
           key: 'accessToken',
           value: authResponse.data!.accessToken,
         );
         await _apiClient.secureStorage.write(key: 'refreshToken', value: authResponse.data!.refreshToken);
-
+        
+        // Nạp token vào RAM ngay lập tức
+        _apiClient.setToken(authResponse.data!.accessToken);
+      } else if (authResponse.success) {
+        throw ApiError(success: false, message: 'Phản hồi đăng nhập thiếu token xác thực.');
       }
 
       return authResponse;
@@ -263,13 +277,12 @@ class AuthService {
       if (response.data != null && response.data['success'] == true) {
         return true;
       }
-      
+
       // Nếu HTTP 200 OK nhưng success = false (dù C# đang trả 400, cứ rào trước cho chắc)
       throw ApiError(
         success: false,
         message: response.data['message'] ?? 'Đổi mật khẩu thất bại',
       );
-
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final responseData = e.response!.data;
@@ -279,13 +292,13 @@ class AuthService {
             success: false,
             message: responseData['message'] ?? 'Mật khẩu không chính xác!',
           );
-        } 
+        }
         // Nếu trả về text HTML (404 Not Found, 500 Server Error)
         else {
           throw ApiError(success: false, message: responseData.toString());
         }
       }
-      
+
       // Nếu sập mạng, không có response
       throw ApiError(
         success: false,
@@ -304,11 +317,20 @@ class AuthService {
 
       final authResponse = AuthResponse.fromJson(response.data);
 
-      if (authResponse.success && authResponse.data != null) {
+      if (authResponse.success && authResponse.data != null && _hasValidTokens(authResponse)) {
         await _apiClient.secureStorage.write(
           key: 'accessToken',
           value: authResponse.data!.accessToken,
         );
+        await _apiClient.secureStorage.write(
+          key: 'refreshToken',
+          value: authResponse.data!.refreshToken,
+        );
+        
+        // Nạp token vào RAM ngay lập tức
+        _apiClient.setToken(authResponse.data!.accessToken);
+      } else if (authResponse.success) {
+        throw ApiError(success: false, message: 'Phản hồi Google login thiếu token xác thực.');
       }
 
       return authResponse;
@@ -337,7 +359,7 @@ class AuthService {
       await _apiClient.dio.post(
         '/auth/logout',
         data: {
-          'refreshToken': refreshToken ?? '', 
+          'refreshToken': refreshToken ?? '',
         },
       );
     } catch (e) {
@@ -353,7 +375,7 @@ class AuthService {
   Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
       final token = await _apiClient.secureStorage.read(key: 'accessToken');
-      
+
       if (token == null) return null;
 
       // Decode JWT token (without verification, just decode)
@@ -368,7 +390,67 @@ class AuthService {
   // Check if user is authenticated
   Future<bool> isAuthenticated() async {
     final token = await _apiClient.secureStorage.read(key: 'accessToken');
-    return token != null;
+    if (token == null || token.trim().isEmpty) {
+      return false;
+    }
+
+    try {
+      if (!Jwt.isExpired(token)) {
+        return true;
+      }
+    } catch (_) {
+      // If token payload cannot be decoded, fallback to refresh token flow.
+    }
+
+    return await tryRefreshToken();
+  }
+
+  Future<bool> tryRefreshToken() async {
+    final refreshToken = await _apiClient.secureStorage.read(key: 'refreshToken');
+    if (refreshToken == null || refreshToken.trim().isEmpty) {
+      return false;
+    }
+
+    try {
+      final response = await _apiClient.dio.post(
+        '/auth/refresh-token',
+        data: {'refreshToken': refreshToken},
+        options: Options(extra: {'_retry': true}),
+      );
+
+      final responseData = response.data;
+      if (responseData is! Map) {
+        return false;
+      }
+
+      final envelope = responseData.cast<String, dynamic>();
+      final payloadRaw = envelope['data'] ?? envelope['Data'];
+      if (payloadRaw is! Map) {
+        return false;
+      }
+
+      final payload = payloadRaw.cast<String, dynamic>();
+      final newAccessToken = (payload['accessToken'] ?? payload['AccessToken'])?.toString();
+      final newRefreshToken = (payload['refreshToken'] ?? payload['RefreshToken'])?.toString();
+
+      if (newAccessToken == null || newAccessToken.isEmpty) {
+        return false;
+      }
+
+      await _apiClient.secureStorage.write(key: 'accessToken', value: newAccessToken);
+      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+        await _apiClient.secureStorage.write(key: 'refreshToken', value: newRefreshToken);
+      }
+      
+      // Nạp token mới vào RAM ngay lập tức
+      _apiClient.setToken(newAccessToken);
+
+      return true;
+    } on DioException {
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   // Get access token
@@ -387,12 +469,8 @@ class AuthService {
       if (response.data != null && response.data['success'] == true) {
         return true;
       }
-      
-      throw ApiError(
-        success: false, 
-        message: response.data['message'] ?? 'Gửi yêu cầu thất bại'
-      );
 
+      throw ApiError(success: false, message: response.data['message'] ?? 'Gửi yêu cầu thất bại');
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final responseData = e.response!.data;
@@ -407,8 +485,6 @@ class AuthService {
       throw ApiError(success: false, message: e.toString());
     }
   }
-
- 
 
   Future<bool> resetPassword(String token, String newPassword) async {
     try {
@@ -434,7 +510,4 @@ class AuthService {
       throw ApiError(success: false, message: 'Lỗi kết nối: ${e.message}');
     }
   }
-
-  
 }
-

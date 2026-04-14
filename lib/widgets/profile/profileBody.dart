@@ -7,6 +7,7 @@ import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../models/userModel.dart';
 import '../../providers/authProvider.dart';
+import '../../providers/postProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../feed/postCard.dart';
 import '../../screens/settings/settingsScreen.dart';
@@ -20,6 +21,7 @@ class ProfileBody extends StatefulWidget {
 
 class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String? _autoLoadedPostsForOwnerId;
 
   @override
   void initState() {
@@ -48,7 +50,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final myPosts = MockData.posts;
+    final postProvider = context.watch<PostProvider>();
 
     return Consumer<UserProfileProvider>(
       builder: (context, profileProvider, _) {
@@ -66,8 +68,24 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
           return _buildErrorState('Khong tim thay thong tin profile.');
         }
 
+        final ownerId = profile.userId.isNotEmpty ? profile.userId : profile.id;
+        if (ownerId.isNotEmpty && _autoLoadedPostsForOwnerId != ownerId && !postProvider.isLoadingMyPosts) {
+          _autoLoadedPostsForOwnerId = ownerId;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            context.read<PostProvider>().loadMyPosts(ownerId);
+          });
+        }
+
         return RefreshIndicator(
-          onRefresh: () => profileProvider.loadMyProfile(),
+          onRefresh: () async {
+            await profileProvider.loadMyProfile();
+            if (ownerId.isNotEmpty) {
+              await context.read<PostProvider>().loadMyPosts(ownerId, forceRefresh: true);
+            }
+          },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -101,7 +119,8 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                 sliver: _buildTabContent(
                   profile: profile,
                   isDark: isDark,
-                  myPosts: myPosts,
+                  myPosts: postProvider.myPosts,
+                  isLoadingMyPosts: postProvider.isLoadingMyPosts,
                 ),
               ),
             ],
@@ -393,8 +412,20 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
     required User profile,
     required bool isDark,
     required List<Post> myPosts,
+    required bool isLoadingMyPosts,
   }) {
     if (_tabController.index == 0) {
+      if (isLoadingMyPosts && myPosts.isEmpty) {
+        return SliverList(
+          delegate: SliverChildListDelegate([
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ]),
+        );
+      }
+
       if (myPosts.isEmpty) {
         return SliverList(
           delegate: SliverChildListDelegate([
@@ -425,6 +456,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
               child: PostCard(
                 post: myPosts[index % myPosts.length],
                 onToggleComments: () {},
+                currentUserAvatar: profile.profilePictureUrl,
               ),
             );
           },

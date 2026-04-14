@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
-import '../../models/feedModel.dart';
+import '../../providers/authProvider.dart';
+import '../../providers/postProvider.dart';
+import '../../providers/userProfileProvider.dart';
 
 class CreatePostModal extends StatefulWidget {
   final VoidCallback onClose;
@@ -16,6 +21,64 @@ class CreatePostModal extends StatefulWidget {
 
 class _CreatePostModalState extends State<CreatePostModal> {
   final _textController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
+
+  String? _pickedImagePath;
+  String? _pickedAudioPath;
+
+  Future<void> _submitPost() async {
+    final content = _textController.text.trim();
+    if (content.isEmpty) {
+      return;
+    }
+
+    final postProvider = context.read<PostProvider>();
+    final success = _pickedImagePath != null
+        ? await postProvider.createImagePost(content: content, imagePath: _pickedImagePath!)
+        : (_pickedAudioPath != null
+            ? await postProvider.createVoicePost(content: content, audioPath: _pickedAudioPath!)
+            : await postProvider.createTextPost(content));
+    if (!mounted) {
+      return;
+    }
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.read<PostProvider>().error ?? 'Đăng bài thất bại.')),
+      );
+      return;
+    }
+
+    _textController.clear();
+    _pickedImagePath = null;
+    _pickedAudioPath = null;
+    widget.onClose();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (picked == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _pickedImagePath = picked.path;
+      _pickedAudioPath = null;
+    });
+  }
+
+  Future<void> _pickAudio() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg'],
+    );
+    if (picked == null || picked.files.single.path == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _pickedAudioPath = picked.files.single.path!;
+      _pickedImagePath = null;
+    });
+  }
 
   @override
   void dispose() {
@@ -25,6 +88,12 @@ class _CreatePostModalState extends State<CreatePostModal> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final profile = context.watch<UserProfileProvider>().profile;
+    final postProvider = context.watch<PostProvider>();
+    final displayName = profile?.displayName ?? auth.user?.fullName ?? 'Bạn';
+    final avatarUrl = profile?.avatar ?? '';
+
     return GestureDetector(
       onTap: widget.onClose,
       child: Container(
@@ -60,13 +129,17 @@ class _CreatePostModalState extends State<CreatePostModal> {
                         padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            _buildUserInfo(),
+                            _buildUserInfo(displayName, avatarUrl),
                             const SizedBox(height: 16),
                             _buildTextInput(),
                             const SizedBox(height: 16),
+                            if (_pickedImagePath != null || _pickedAudioPath != null) ...[
+                              _buildPickedMediaPreview(),
+                              const SizedBox(height: 12),
+                            ],
                             _buildAttachmentOptions(),
                             const SizedBox(height: 20),
-                            _buildPostButton(),
+                            _buildPostButton(postProvider.isSubmitting),
                           ],
                         ),
                       ),
@@ -120,7 +193,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildUserInfo() {
+  Widget _buildUserInfo(String displayName, String avatarUrl) {
     return Row(
       children: [
         // Avatar
@@ -133,7 +206,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
           ),
           child: ClipOval(
             child: Image.network(
-              MockData.currentUser.avatar,
+              avatarUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -152,7 +225,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              MockData.currentUser.name,
+              displayName,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -236,7 +309,8 @@ class _CreatePostModalState extends State<CreatePostModal> {
             ),
           ),
           const Spacer(),
-          _buildAttachmentButton(Icons.image, Colors.green),
+          _buildAttachmentButton(Icons.image, Colors.green, onTap: _pickImage),
+          _buildAttachmentButton(Icons.mic, Colors.deepPurpleAccent, onTap: _pickAudio),
           _buildAttachmentButton(Icons.people, Colors.blue),
           _buildAttachmentButton(Icons.emoji_emotions, Colors.yellow),
           _buildAttachmentButton(Icons.location_on, Colors.red),
@@ -245,7 +319,43 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildAttachmentButton(IconData icon, Color color) {
+  Widget _buildPickedMediaPreview() {
+    final label = _pickedImagePath != null ? 'Đã chọn ảnh' : 'Đã chọn audio';
+    final icon = _pickedImagePath != null ? Icons.image_outlined : Icons.audio_file_outlined;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.slate800.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.slate700),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _pickedImagePath = null;
+                _pickedAudioPath = null;
+              });
+            },
+            icon: const Icon(Icons.close, size: 16, color: Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentButton(IconData icon, Color color, {VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Container(
@@ -258,17 +368,17 @@ class _CreatePostModalState extends State<CreatePostModal> {
         child: IconButton(
           icon: Icon(icon, size: 20, color: color),
           padding: EdgeInsets.zero,
-          onPressed: () {},
+          onPressed: onTap ?? () {},
         ),
       ),
     );
   }
 
-  Widget _buildPostButton() {
+  Widget _buildPostButton(bool isSubmitting) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: widget.onClose,
+        onPressed: isSubmitting ? null : _submitPost,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -277,13 +387,19 @@ class _CreatePostModalState extends State<CreatePostModal> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Text(
-          'Đăng bài',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: isSubmitting
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text(
+                'Đăng bài',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }

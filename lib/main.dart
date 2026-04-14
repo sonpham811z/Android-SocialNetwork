@@ -5,6 +5,7 @@ import 'package:app_links/app_links.dart';
 
 import 'providers/authProvider.dart';
 import 'providers/friendProvider.dart';
+import 'providers/postProvider.dart';
 import 'providers/themeProvider.dart';
 import 'providers/userProfileProvider.dart';
 import 'screens/authScreen/loginScreen.dart';
@@ -101,6 +102,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProfileProvider()),
         ChangeNotifierProvider(create: (_) => FriendProvider()),
+        ChangeNotifierProvider(create: (_) => PostProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
