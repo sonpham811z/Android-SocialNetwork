@@ -8,6 +8,8 @@ class PostProvider with ChangeNotifier {
 
   final List<Post> _feedPosts = [];
   final List<Post> _myPosts = [];
+  int _feedPostsTotalCount = 0;
+  int _myPostsTotalCount = 0;
   bool _isLoadingFeed = false;
   bool _isLoadingMyPosts = false;
   bool _isSubmitting = false;
@@ -15,6 +17,8 @@ class PostProvider with ChangeNotifier {
 
   List<Post> get feedPosts => List.unmodifiable(_feedPosts);
   List<Post> get myPosts => List.unmodifiable(_myPosts);
+  int get feedPostsTotalCount => _feedPostsTotalCount;
+  int get myPostsTotalCount => _myPostsTotalCount;
   bool get isLoadingFeed => _isLoadingFeed;
   bool get isLoadingMyPosts => _isLoadingMyPosts;
   bool get isSubmitting => _isSubmitting;
@@ -34,10 +38,11 @@ class PostProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final posts = await _service.getFeed();
+      final result = await _service.getFeed();
       _feedPosts
         ..clear()
-        ..addAll(posts);
+        ..addAll(result.posts);
+      _feedPostsTotalCount = result.totalCount;
     } catch (e) {
       _error = e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString();
     } finally {
@@ -60,10 +65,11 @@ class PostProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final posts = await _service.getUserPosts(userId);
+      final result = await _service.getUserPosts(userId);
       _myPosts
         ..clear()
-        ..addAll(posts);
+        ..addAll(result.posts);
+      _myPostsTotalCount = result.totalCount;
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -205,6 +211,61 @@ class PostProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePost({
+    required String postId,
+    required String content,
+  }) async {
+    final normalized = content.trim();
+    if (normalized.isEmpty || _isSubmitting) {
+      return false;
+    }
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final updated = await _service.updatePost(postId: postId, content: normalized);
+      if (updated != null) {
+        _replacePost(updated);
+      }
+      _isSubmitting = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isSubmitting = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deletePost(String postId) async {
+    if (_isSubmitting) {
+      return false;
+    }
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final success = await _service.deletePost(postId);
+      if (success) {
+        _feedPosts.removeWhere((post) => post.id == postId);
+        _myPosts.removeWhere((post) => post.id == postId);
+      }
+      _isSubmitting = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _error = e.toString();
+      _isSubmitting = false;
       notifyListeners();
       return false;
     }

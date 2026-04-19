@@ -8,7 +8,10 @@ class PostCard extends StatelessWidget {
   final bool isExpanded; // Trạng thái đóng mở comment
   final VoidCallback onToggleComments;
   final String? currentUserAvatar;
+  final bool canManage;
   final VoidCallback? onToggleLike;
+  final VoidCallback? onEditPost;
+  final VoidCallback? onDeletePost;
   final Future<void> Function()? onLoadComments;
   final Future<bool> Function(String content)? onSubmitComment;
 
@@ -18,7 +21,10 @@ class PostCard extends StatelessWidget {
     this.isExpanded = false,
     required this.onToggleComments,
     this.currentUserAvatar,
+    this.canManage = false,
     this.onToggleLike,
+    this.onEditPost,
+    this.onDeletePost,
     this.onLoadComments,
     this.onSubmitComment,
   });
@@ -105,6 +111,7 @@ class PostCard extends StatelessWidget {
   // --- CÁC WIDGET CON ---
 
   Widget _buildPostHeader(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -145,11 +152,28 @@ class PostCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.more_horiz),
-            onPressed: () {},
-            color: AppTheme.slate400,
-          ),
+          if (canManage)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz),
+              color: isDark ? const Color(0xFF202024) : Colors.white,
+              onSelected: (value) {
+                if (value == 'edit') {
+                  onEditPost?.call();
+                } else if (value == 'delete') {
+                  onDeletePost?.call();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'edit', child: Text('Chỉnh sửa bài viết')),
+                PopupMenuItem(value: 'delete', child: Text('Xóa bài viết')),
+              ],
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.more_horiz),
+              onPressed: () {},
+              color: AppTheme.slate400,
+            ),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../models/friendModel.dart';
 import 'apiClient.dart';
 import '../config/environment.dart';
+import '../utils/json_helpers.dart';
 
 class FriendService {
   final ApiClient _apiClient = ApiClient();
@@ -16,6 +17,14 @@ class FriendService {
     return Exception(e.toString());
   }
 
+  Map<String, dynamic> _requireMap(dynamic responseData) {
+    final body = asJsonMap(responseData);
+    if (body == null) {
+      throw Exception('Invalid friend response format.');
+    }
+    return body;
+  }
+
   Future<FriendApiResponse<PaginatedResponse<FriendshipModel>>> getMyFriends({
     int page = 1,
     int pageSize = 20,
@@ -27,9 +36,9 @@ class FriendService {
       );
 
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => PaginatedResponse.fromJson(
-          raw as Map<String, dynamic>,
+          _requireMap(raw),
           FriendshipModel.fromJson,
         ),
       );
@@ -51,9 +60,9 @@ class FriendService {
       );
 
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => PaginatedResponse.fromJson(
-          raw as Map<String, dynamic>,
+          _requireMap(raw),
           FriendshipModel.fromJson,
         ),
       );
@@ -67,8 +76,10 @@ class FriendService {
       final response = await _apiClient.dio.get('$_baseUrl/friends/ids');
 
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
-        (raw) => (raw as List<dynamic>).map((e) => e.toString()).toList(),
+        _requireMap(response.data),
+        (raw) => (asJsonList(raw) ?? const <dynamic>[])
+            .map((e) => e.toString())
+            .toList(),
       );
     } catch (e) {
       throw _mapError(e);
@@ -77,9 +88,10 @@ class FriendService {
 
   Future<FriendApiResponse<dynamic>> unfriend(String targetUserId) async {
     try {
-      final response = await _apiClient.dio.delete('$_baseUrl/friends/$targetUserId');
+      final response =
+          await _apiClient.dio.delete('$_baseUrl/friends/$targetUserId');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -91,10 +103,11 @@ class FriendService {
     String userId,
   ) async {
     try {
-      final response = await _apiClient.dio.get('$_baseUrl/friends/summary/$userId');
+      final response =
+          await _apiClient.dio.get('$_baseUrl/friends/summary/$userId');
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
-        (raw) => SocialSummaryModel.fromJson(raw as Map<String, dynamic>),
+        _requireMap(response.data),
+        (raw) => SocialSummaryModel.fromJson(_requireMap(raw)),
       );
     } catch (e) {
       throw _mapError(e);
@@ -110,7 +123,7 @@ class FriendService {
       );
 
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -120,9 +133,10 @@ class FriendService {
 
   Future<FriendApiResponse<dynamic>> acceptRequest(String requestId) async {
     try {
-      final response = await _apiClient.dio.put('$_baseUrl/friends/requests/$requestId/accept');
+      final response = await _apiClient.dio
+          .put('$_baseUrl/friends/requests/$requestId/accept');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -132,9 +146,10 @@ class FriendService {
 
   Future<FriendApiResponse<dynamic>> declineRequest(String requestId) async {
     try {
-      final response = await _apiClient.dio.put('$_baseUrl/friends/requests/$requestId/decline');
+      final response = await _apiClient.dio
+          .put('$_baseUrl/friends/requests/$requestId/decline');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -144,9 +159,10 @@ class FriendService {
 
   Future<FriendApiResponse<dynamic>> cancelRequest(String requestId) async {
     try {
-      final response = await _apiClient.dio.delete('$_baseUrl/friends/requests/$requestId');
+      final response =
+          await _apiClient.dio.delete('$_baseUrl/friends/requests/$requestId');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -165,9 +181,9 @@ class FriendService {
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => PaginatedResponse.fromJson(
-          raw as Map<String, dynamic>,
+          _requireMap(raw),
           FriendRequestModel.fromJson,
         ),
       );
@@ -187,9 +203,9 @@ class FriendService {
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => PaginatedResponse.fromJson(
-          raw as Map<String, dynamic>,
+          _requireMap(raw),
           FriendRequestModel.fromJson,
         ),
       );
@@ -200,9 +216,10 @@ class FriendService {
 
   Future<FriendApiResponse<dynamic>> follow(String followeeId) async {
     try {
-      final response = await _apiClient.dio.post('$_baseUrl/follows/$followeeId');
+      final response =
+          await _apiClient.dio.post('$_baseUrl/follows/$followeeId');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -212,9 +229,10 @@ class FriendService {
 
   Future<FriendApiResponse<dynamic>> unfollow(String followeeId) async {
     try {
-      final response = await _apiClient.dio.delete('$_baseUrl/follows/$followeeId');
+      final response =
+          await _apiClient.dio.delete('$_baseUrl/follows/$followeeId');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -233,9 +251,9 @@ class FriendService {
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => PaginatedResponse.fromJson(
-          raw as Map<String, dynamic>,
+          _requireMap(raw),
           FollowModel.fromJson,
         ),
       );
@@ -255,9 +273,9 @@ class FriendService {
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => PaginatedResponse.fromJson(
-          raw as Map<String, dynamic>,
+          _requireMap(raw),
           FollowModel.fromJson,
         ),
       );
@@ -270,7 +288,7 @@ class FriendService {
     try {
       final response = await _apiClient.dio.post('$_baseUrl/blocks/$blockedId');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -280,9 +298,10 @@ class FriendService {
 
   Future<FriendApiResponse<dynamic>> unblockUser(String blockedId) async {
     try {
-      final response = await _apiClient.dio.delete('$_baseUrl/blocks/$blockedId');
+      final response =
+          await _apiClient.dio.delete('$_baseUrl/blocks/$blockedId');
       return FriendApiResponse<dynamic>.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => raw,
       );
     } catch (e) {
@@ -301,9 +320,9 @@ class FriendService {
       );
 
       return FriendApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
+        _requireMap(response.data),
         (raw) => PaginatedResponse.fromJson(
-          raw as Map<String, dynamic>,
+          _requireMap(raw),
           BlockModel.fromJson,
         ),
       );

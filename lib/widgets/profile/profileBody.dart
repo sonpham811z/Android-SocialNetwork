@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../models/userModel.dart';
+import '../../providers/friendProvider.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../providers/userProfileProvider.dart';
@@ -22,6 +23,7 @@ class ProfileBody extends StatefulWidget {
 class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _autoLoadedPostsForOwnerId;
+  String? _autoLoadedSummaryForOwnerId;
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final friendProvider = context.watch<FriendProvider>();
     final postProvider = context.watch<PostProvider>();
 
     return Consumer<UserProfileProvider>(
@@ -69,6 +72,22 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
         }
 
         final ownerId = profile.userId.isNotEmpty ? profile.userId : profile.id;
+        final socialSummary = friendProvider.socialSummary;
+        final hasLoadedSocialSummary =
+          ownerId.isNotEmpty && _autoLoadedSummaryForOwnerId == ownerId && !friendProvider.isLoading;
+        final hasLoadedMyPosts =
+          ownerId.isNotEmpty && _autoLoadedPostsForOwnerId == ownerId && !postProvider.isLoadingMyPosts;
+        final resolvedFriendsCount = hasLoadedSocialSummary && socialSummary != null
+          ? socialSummary.friendsCount
+          : profile.friendsCount;
+        final resolvedFollowersCount = hasLoadedSocialSummary && socialSummary != null
+          ? socialSummary.followersCount
+          : profile.followersCount;
+        final resolvedFollowingCount = hasLoadedSocialSummary && socialSummary != null
+          ? socialSummary.followingCount
+          : profile.followingCount;
+        final resolvedPostsCount = hasLoadedMyPosts ? postProvider.myPostsTotalCount : profile.postsCount;
+
         if (ownerId.isNotEmpty && _autoLoadedPostsForOwnerId != ownerId && !postProvider.isLoadingMyPosts) {
           _autoLoadedPostsForOwnerId = ownerId;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -79,10 +98,21 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
           });
         }
 
+        if (ownerId.isNotEmpty && _autoLoadedSummaryForOwnerId != ownerId && !friendProvider.isLoading) {
+          _autoLoadedSummaryForOwnerId = ownerId;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            context.read<FriendProvider>().loadSocialSummary(ownerId);
+          });
+        }
+
         return RefreshIndicator(
           onRefresh: () async {
             await profileProvider.loadMyProfile();
             if (ownerId.isNotEmpty) {
+              await context.read<FriendProvider>().loadSocialSummary(ownerId);
               await context.read<PostProvider>().loadMyPosts(ownerId, forceRefresh: true);
             }
           },
@@ -90,7 +120,14 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                child: _buildProfileHeader(profile, isDark),
+                child: _buildProfileHeader(
+                  profile,
+                  isDark,
+                  friendsCount: resolvedFriendsCount,
+                  followersCount: resolvedFollowersCount,
+                  followingCount: resolvedFollowingCount,
+                  postsCount: resolvedPostsCount,
+                ),
               ),
               SliverPersistentHeader(
                 delegate: _SliverAppBarDelegate(
@@ -121,6 +158,10 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                   isDark: isDark,
                   myPosts: postProvider.myPosts,
                   isLoadingMyPosts: postProvider.isLoadingMyPosts,
+                  friendsCount: resolvedFriendsCount,
+                  followersCount: resolvedFollowersCount,
+                  followingCount: resolvedFollowingCount,
+                  postsCount: resolvedPostsCount,
                 ),
               ),
             ],
@@ -130,7 +171,14 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildProfileHeader(User profile, bool isDark) {
+  Widget _buildProfileHeader(
+    User profile,
+    bool isDark, {
+    required int friendsCount,
+    required int followersCount,
+    required int followingCount,
+    required int postsCount,
+  }) {
     final surfaceColor = isDark ? const Color(0xFF0F0F10) : Colors.white;
 
     return Column(
@@ -287,13 +335,13 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
 
               Row(
                 children: [
-                  _buildStatItem(isDark, '${profile.postsCount}', 'Posts'),
+                  _buildStatItem(isDark, '$postsCount', 'Posts'),
                   const SizedBox(width: 24),
-                  _buildStatItem(isDark, '${profile.followersCount}', 'Followers'),
+                  _buildStatItem(isDark, '$followersCount', 'Followers'),
                   const SizedBox(width: 24),
-                  _buildStatItem(isDark, '${profile.followingCount}', 'Following'),
+                  _buildStatItem(isDark, '$followingCount', 'Following'),
                   const SizedBox(width: 24),
-                  _buildStatItem(isDark, '${profile.friendsCount}', 'Friends'),
+                  _buildStatItem(isDark, '$friendsCount', 'Friends'),
                 ],
               ),
 
@@ -413,6 +461,10 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
     required bool isDark,
     required List<Post> myPosts,
     required bool isLoadingMyPosts,
+    required int friendsCount,
+    required int followersCount,
+    required int followingCount,
+    required int postsCount,
   }) {
     if (_tabController.index == 0) {
       if (isLoadingMyPosts && myPosts.isEmpty) {
@@ -454,7 +506,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
             return Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               child: PostCard(
-                post: myPosts[index % myPosts.length],
+                post: myPosts[index],
                 onToggleComments: () {},
                 currentUserAvatar: profile.profilePictureUrl,
               ),
@@ -509,20 +561,20 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
             spacing: 12,
             runSpacing: 12,
             children: [
-              _buildMetricCard(isDark, 'Friends', profile.friendsCount, Icons.group_outlined),
+              _buildMetricCard(isDark, 'Friends', friendsCount, Icons.group_outlined),
               _buildMetricCard(
                 isDark,
                 'Followers',
-                profile.followersCount,
+                followersCount,
                 Icons.trending_up_rounded,
               ),
               _buildMetricCard(
                 isDark,
                 'Following',
-                profile.followingCount,
+                followingCount,
                 Icons.person_add_alt_1_rounded,
               ),
-              _buildMetricCard(isDark, 'Posts', profile.postsCount, Icons.article_outlined),
+              _buildMetricCard(isDark, 'Posts', postsCount, Icons.article_outlined),
             ],
           ),
         ),
