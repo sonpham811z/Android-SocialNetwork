@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/themeProvider.dart';
+import '../../providers/authProvider.dart';
 
 class FeedHeader extends StatefulWidget {
   final VoidCallback onCreatePost;
@@ -35,22 +36,25 @@ class _FeedHeaderState extends State<FeedHeader> {
           ),
         ),
       ),
-      child: _isSearching ? _buildSearchBar() : _buildNormalHeader(isDark, themeProvider),
+      child: _isSearching
+          ? _buildSearchBar()
+          : _buildNormalHeader(isDark, themeProvider),
     );
   }
 
   Widget _buildNormalHeader(bool isDark, ThemeProvider themeProvider) {
     return Row(
       children: [
-        // 1. Logo App 
+        // 1. Logo App
         Image.network(
           'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/2021_Facebook_icon.svg/2048px-2021_Facebook_icon.svg.png',
           height: 32,
           width: 32,
-          errorBuilder: (context, error, stackTrace) => const Icon(Icons.facebook, color: Colors.blue, size: 32),
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.facebook, color: Colors.blue, size: 32),
         ),
 
-        const Spacer(), 
+        const Spacer(),
         // 2. Nút Search
         _buildIconButton(
           Icons.search,
@@ -60,13 +64,52 @@ class _FeedHeaderState extends State<FeedHeader> {
             });
           },
         ),
-        
+
         const SizedBox(width: 8),
 
         _buildIconButton(
           isDark ? Icons.light_mode : Icons.dark_mode,
           () {
             themeProvider.toggleTheme();
+          },
+        ),
+
+        const SizedBox(width: 8),
+
+        // 3. Nút Logout
+        _buildIconButton(
+          Icons.logout,
+          () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) {
+                return AlertDialog(
+                  backgroundColor: const Color(0xFF18181B),
+                  title: const Text('Đăng Xuất',
+                      style: TextStyle(color: Colors.white)),
+                  content: const Text(
+                    'Bạn có chắc muốn đăng xuất không?',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: const Text('Hủy'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      style:
+                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Đăng Xuất'),
+                    ),
+                  ],
+                );
+              },
+            );
+
+            if (confirmed == true && mounted) {
+              await context.read<AuthProvider>().logout();
+            }
           },
         ),
       ],

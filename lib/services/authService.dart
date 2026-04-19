@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:jwt_decode/jwt_decode.dart';
 import 'apiClient.dart';
+import '../utils/json_helpers.dart';
 
 class RegisterData {
   final String email;
@@ -111,10 +111,13 @@ class AuthResponseData {
 
   factory AuthResponseData.fromJson(Map<String, dynamic> json) {
     return AuthResponseData(
-      accessToken: (json['accessToken'] ?? json['AccessToken'] ?? '').toString(),
-      refreshToken: (json['refreshToken'] ?? json['RefreshToken'] ?? '').toString(),
+      accessToken:
+          (json['accessToken'] ?? json['AccessToken'] ?? '').toString(),
+      refreshToken:
+          (json['refreshToken'] ?? json['RefreshToken'] ?? '').toString(),
       expiresAt: (json['expiresAt'] ?? json['ExpiresAt'] ?? '').toString(),
-      user: UserData.fromJson((json['user'] ?? json['User'] ?? const <String, dynamic>{}) as Map<String, dynamic>),
+      user: UserData.fromJson(
+          asJsonMap(json['user'] ?? json['User']) ?? const <String, dynamic>{}),
     );
   }
 }
@@ -167,7 +170,7 @@ class ApiError {
       }
       // Trường hợp 2: Backend trả về 1 cục Map (ví dụ lỗi Validation của ASP.NET)
       else if (json['errors'] is Map) {
-        final errorMap = json['errors'] as Map<String, dynamic>;
+        final errorMap = asJsonMap(json['errors']) ?? <String, dynamic>{};
         errorMap.forEach((key, value) {
           if (value is List) {
             // Nếu value là mảng ["lỗi 1", "lỗi 2"]
@@ -183,13 +186,31 @@ class ApiError {
     return ApiError(
       success: json['success'] ?? false,
       message: json['message'] ?? 'An error occurred',
-      errors: (parsedErrors != null && parsedErrors.isNotEmpty) ? parsedErrors : null,
+      errors: (parsedErrors != null && parsedErrors.isNotEmpty)
+          ? parsedErrors
+          : null,
     );
+  }
+
+  @override
+  String toString() {
+    if (errors != null && errors!.isNotEmpty) {
+      return 'ApiError: $message - ${errors!.join(', ')}';
+    }
+    return 'ApiError: $message';
   }
 }
 
 class AuthService {
   final ApiClient _apiClient = ApiClient();
+
+  Map<String, dynamic> _requireMap(dynamic value) {
+    final map = asJsonMap(value);
+    if (map == null) {
+      throw ApiError(success: false, message: 'Invalid auth response format.');
+    }
+    return map;
+  }
 
   bool _hasValidTokens(AuthResponse response) {
     final access = response.data?.accessToken.trim() ?? '';
@@ -200,28 +221,29 @@ class AuthService {
   //register
   Future<AuthResponse> register(RegisterData data) async {
     try {
-      final response = await _apiClient.dio.post('/auth/register', data: data.toJson());
+      final response =
+          await _apiClient.dio.post('/auth/register', data: data.toJson());
 
-      final authResponse = AuthResponse.fromJson(response.data);
+      final authResponse = AuthResponse.fromJson(_requireMap(response.data));
 
-      if (authResponse.success && authResponse.data != null && _hasValidTokens(authResponse)) {
-        await _apiClient.secureStorage.write(key: 'accessToken', value: authResponse.data!.accessToken);
-        await _apiClient.secureStorage.write(key: 'refreshToken', value: authResponse.data!.refreshToken);
-        
-        // Nạp token vào RAM ngay lập tức
-        _apiClient.setToken(authResponse.data!.accessToken);
-      } else if (authResponse.success) {
-        throw ApiError(success: false, message: 'Phản hồi đăng ký thiếu token xác thực.');
-      }
-
+      // Note: Backend /auth/register does not return tokens
+      // It only returns user data and requires email verification
+      // So we just return the response without storing tokens
+      
       return authResponse;
     } on DioException catch (e) {
       if (e.response != null) {
-        throw ApiError.fromJson(e.response!.data);
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          throw ApiError.fromJson(responseData);
+        }
+        throw ApiError(success: false, message: responseData.toString());
       }
-      throw ApiError(success: false, message: 'Registration failed: ${e.message}');
+      throw ApiError(
+          success: false, message: 'Registration failed: ${e.message}');
     } catch (e) {
-      throw ApiError(success: false, message: 'Registration failed: ${e.toString()}');
+      throw ApiError(
+          success: false, message: 'Registration failed: ${e.toString()}');
     }
   }
 
@@ -232,26 +254,35 @@ class AuthService {
         data: data.toJson(),
       );
 
-      final authResponse = AuthResponse.fromJson(response.data);
+      final authResponse = AuthResponse.fromJson(_requireMap(response.data));
 
-      if (authResponse.success && authResponse.data != null && _hasValidTokens(authResponse)) {
+      if (authResponse.success &&
+          authResponse.data != null &&
+          _hasValidTokens(authResponse)) {
         // Save access token to secure storage (expires in 15 minutes)
         await _apiClient.secureStorage.write(
           key: 'accessToken',
           value: authResponse.data!.accessToken,
         );
-        await _apiClient.secureStorage.write(key: 'refreshToken', value: authResponse.data!.refreshToken);
-        
+        await _apiClient.secureStorage
+            .write(key: 'refreshToken', value: authResponse.data!.refreshToken);
+
         // Nạp token vào RAM ngay lập tức
         _apiClient.setToken(authResponse.data!.accessToken);
       } else if (authResponse.success) {
-        throw ApiError(success: false, message: 'Phản hồi đăng nhập thiếu token xác thực.');
+        throw ApiError(
+            success: false,
+            message: 'Phản hồi đăng nhập thiếu token xác thực.');
       }
 
       return authResponse;
     } on DioException catch (e) {
       if (e.response != null) {
-        throw ApiError.fromJson(e.response!.data);
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          throw ApiError.fromJson(responseData);
+        }
+        throw ApiError(success: false, message: responseData.toString());
       }
       throw ApiError(
         success: false,
@@ -274,14 +305,15 @@ class AuthService {
       );
 
       // Nếu HTTP 200 OK và success = true
-      if (response.data != null && response.data['success'] == true) {
+      final responseData = _requireMap(response.data);
+      if (responseData['success'] == true) {
         return true;
       }
 
       // Nếu HTTP 200 OK nhưng success = false (dù C# đang trả 400, cứ rào trước cho chắc)
       throw ApiError(
         success: false,
-        message: response.data['message'] ?? 'Đổi mật khẩu thất bại',
+        message: responseData['message']?.toString() ?? 'Đổi mật khẩu thất bại',
       );
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
@@ -315,9 +347,11 @@ class AuthService {
         data: {'idToken': idToken},
       );
 
-      final authResponse = AuthResponse.fromJson(response.data);
+      final authResponse = AuthResponse.fromJson(_requireMap(response.data));
 
-      if (authResponse.success && authResponse.data != null && _hasValidTokens(authResponse)) {
+      if (authResponse.success &&
+          authResponse.data != null &&
+          _hasValidTokens(authResponse)) {
         await _apiClient.secureStorage.write(
           key: 'accessToken',
           value: authResponse.data!.accessToken,
@@ -326,17 +360,23 @@ class AuthService {
           key: 'refreshToken',
           value: authResponse.data!.refreshToken,
         );
-        
+
         // Nạp token vào RAM ngay lập tức
         _apiClient.setToken(authResponse.data!.accessToken);
       } else if (authResponse.success) {
-        throw ApiError(success: false, message: 'Phản hồi Google login thiếu token xác thực.');
+        throw ApiError(
+            success: false,
+            message: 'Phản hồi Google login thiếu token xác thực.');
       }
 
       return authResponse;
     } on DioException catch (e) {
       if (e.response != null) {
-        throw ApiError.fromJson(e.response!.data);
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          throw ApiError.fromJson(responseData);
+        }
+        throw ApiError(success: false, message: responseData.toString());
       }
       throw ApiError(
         success: false,
@@ -354,7 +394,8 @@ class AuthService {
   Future<void> logout() async {
     try {
       // 1. Lấy Refresh Token từ kho ra
-      final refreshToken = await _apiClient.secureStorage.read(key: 'refreshToken');
+      final refreshToken =
+          await _apiClient.secureStorage.read(key: 'refreshToken');
 
       await _apiClient.dio.post(
         '/auth/logout',
@@ -406,7 +447,8 @@ class AuthService {
   }
 
   Future<bool> tryRefreshToken() async {
-    final refreshToken = await _apiClient.secureStorage.read(key: 'refreshToken');
+    final refreshToken =
+        await _apiClient.secureStorage.read(key: 'refreshToken');
     if (refreshToken == null || refreshToken.trim().isEmpty) {
       return false;
     }
@@ -430,18 +472,22 @@ class AuthService {
       }
 
       final payload = payloadRaw.cast<String, dynamic>();
-      final newAccessToken = (payload['accessToken'] ?? payload['AccessToken'])?.toString();
-      final newRefreshToken = (payload['refreshToken'] ?? payload['RefreshToken'])?.toString();
+      final newAccessToken =
+          (payload['accessToken'] ?? payload['AccessToken'])?.toString();
+      final newRefreshToken =
+          (payload['refreshToken'] ?? payload['RefreshToken'])?.toString();
 
       if (newAccessToken == null || newAccessToken.isEmpty) {
         return false;
       }
 
-      await _apiClient.secureStorage.write(key: 'accessToken', value: newAccessToken);
+      await _apiClient.secureStorage
+          .write(key: 'accessToken', value: newAccessToken);
       if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
-        await _apiClient.secureStorage.write(key: 'refreshToken', value: newRefreshToken);
+        await _apiClient.secureStorage
+            .write(key: 'refreshToken', value: newRefreshToken);
       }
-      
+
       // Nạp token mới vào RAM ngay lập tức
       _apiClient.setToken(newAccessToken);
 
@@ -466,11 +512,15 @@ class AuthService {
         data: {'email': email},
       );
 
-      if (response.data != null && response.data['success'] == true) {
+      final responseData = _requireMap(response.data);
+      if (responseData['success'] == true) {
         return true;
       }
 
-      throw ApiError(success: false, message: response.data['message'] ?? 'Gửi yêu cầu thất bại');
+      throw ApiError(
+          success: false,
+          message:
+              responseData['message']?.toString() ?? 'Gửi yêu cầu thất bại');
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final responseData = e.response!.data;
@@ -493,11 +543,15 @@ class AuthService {
         'newPassword': newPassword,
       });
 
-      if (response.data != null && response.data['success'] == true) {
+      final responseData = _requireMap(response.data);
+      if (responseData['success'] == true) {
         return true;
       }
 
-      throw ApiError(success: false, message: response.data['message'] ?? 'Đặt lại mật khẩu thất bại');
+      throw ApiError(
+          success: false,
+          message: responseData['message']?.toString() ??
+              'Đặt lại mật khẩu thất bại');
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final responseData = e.response!.data;

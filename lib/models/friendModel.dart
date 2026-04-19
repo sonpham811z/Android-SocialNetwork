@@ -1,3 +1,5 @@
+import '../utils/json_helpers.dart';
+
 class FriendApiResponse<T> {
   final bool success;
   final String message;
@@ -14,8 +16,8 @@ class FriendApiResponse<T> {
     T Function(Object? raw) fromData,
   ) {
     return FriendApiResponse<T>(
-      success: (json['success'] ?? json['Success'] ?? false) as bool,
-      message: (json['message'] ?? json['Message'] ?? '') as String,
+      success: asBool(json['success'] ?? json['Success']),
+      message: asText(json['message'] ?? json['Message']),
       data: json['data'] != null || json['Data'] != null
           ? fromData(json['data'] ?? json['Data'])
           : null,
@@ -42,13 +44,15 @@ class PaginatedResponse<T> {
     Map<String, dynamic> json,
     T Function(Map<String, dynamic> itemJson) fromItem,
   ) {
-    final rawItems = (json['items'] ?? json['Items'] ?? []) as List<dynamic>;
-    final parsedItems =
-        rawItems.map((item) => fromItem(item as Map<String, dynamic>)).toList();
+    final rawItems =
+        asJsonList(json['items'] ?? json['Items']) ?? const <dynamic>[];
+    final parsedItems = rawItems
+        .map((item) => fromItem(asJsonMap(item) ?? <String, dynamic>{}))
+        .toList();
 
-    final page = (json['page'] ?? json['Page'] ?? 1) as int;
-    final pageSize = (json['pageSize'] ?? json['PageSize'] ?? 20) as int;
-    final totalCount = (json['totalCount'] ?? json['TotalCount'] ?? 0) as int;
+    final page = asInt(json['page'] ?? json['Page'], fallback: 1);
+    final pageSize = asInt(json['pageSize'] ?? json['PageSize'], fallback: 20);
+    final totalCount = asInt(json['totalCount'] ?? json['TotalCount']);
     final computedHasNext = page * pageSize < totalCount;
 
     return PaginatedResponse<T>(
@@ -56,7 +60,8 @@ class PaginatedResponse<T> {
       page: page,
       pageSize: pageSize,
       totalCount: totalCount,
-      hasNext: (json['hasNext'] ?? json['HasNext'] ?? computedHasNext) as bool,
+      hasNext:
+          asBool(json['hasNext'] ?? json['HasNext'], fallback: computedHasNext),
     );
   }
 }
@@ -76,19 +81,16 @@ class UserLite {
 
   factory UserLite.fromJson(Map<String, dynamic> json) {
     return UserLite(
-      id: (json['id'] ?? json['Id'] ?? '').toString(),
-      name: (json['name'] ??
-              json['Name'] ??
-              json['fullName'] ??
-              json['FullName'] ??
-              '')
-          .toString(),
-      userName: (json['userName'] ??
-              json['UserName'] ??
-              json['username'] ??
-              json['Username'] ??
-              '')
-          .toString(),
+      id: asText(json['id'] ?? json['Id']),
+      name: asText(
+        json['name'] ?? json['Name'] ?? json['fullName'] ?? json['FullName'],
+      ),
+      userName: asText(
+        json['userName'] ??
+            json['UserName'] ??
+            json['username'] ??
+            json['Username'],
+      ),
       avatarUrl: (json['avatarUrl'] ??
               json['AvatarUrl'] ??
               json['profilePictureUrl'] ??
@@ -111,11 +113,9 @@ class FriendshipModel {
 
   factory FriendshipModel.fromJson(Map<String, dynamic> json) {
     return FriendshipModel(
-      id: (json['id'] ?? json['Id'] ?? '').toString(),
+      id: asText(json['id'] ?? json['Id']),
       friend: UserLite.fromJson(
-        (json['friend'] ?? json['Friend'] ?? <String, dynamic>{})
-            as Map<String, dynamic>,
-      ),
+          asJsonMap(json['friend'] ?? json['Friend']) ?? <String, dynamic>{}),
       createdAt: DateTime.tryParse(
             (json['createdAt'] ?? json['CreatedAt'] ?? '').toString(),
           ) ??
@@ -143,16 +143,13 @@ class FriendRequestModel {
 
   factory FriendRequestModel.fromJson(Map<String, dynamic> json) {
     return FriendRequestModel(
-      id: (json['id'] ?? json['Id'] ?? '').toString(),
+      id: asText(json['id'] ?? json['Id']),
       sender: UserLite.fromJson(
-        (json['sender'] ?? json['Sender'] ?? <String, dynamic>{})
-            as Map<String, dynamic>,
-      ),
+          asJsonMap(json['sender'] ?? json['Sender']) ?? <String, dynamic>{}),
       receiver: UserLite.fromJson(
-        (json['receiver'] ?? json['Receiver'] ?? <String, dynamic>{})
-            as Map<String, dynamic>,
-      ),
-      status: (json['status'] ?? json['Status'] ?? '').toString(),
+          asJsonMap(json['receiver'] ?? json['Receiver']) ??
+              <String, dynamic>{}),
+      status: asText(json['status'] ?? json['Status']),
       createdAt: DateTime.tryParse(
             (json['createdAt'] ?? json['CreatedAt'] ?? '').toString(),
           ) ??
@@ -177,11 +174,9 @@ class FollowModel {
 
   factory FollowModel.fromJson(Map<String, dynamic> json) {
     return FollowModel(
-      id: (json['id'] ?? json['Id'] ?? '').toString(),
+      id: asText(json['id'] ?? json['Id']),
       user: UserLite.fromJson(
-        (json['user'] ?? json['User'] ?? <String, dynamic>{})
-            as Map<String, dynamic>,
-      ),
+          asJsonMap(json['user'] ?? json['User']) ?? <String, dynamic>{}),
       createdAt: DateTime.tryParse(
             (json['createdAt'] ?? json['CreatedAt'] ?? '').toString(),
           ) ??
@@ -203,11 +198,10 @@ class BlockModel {
 
   factory BlockModel.fromJson(Map<String, dynamic> json) {
     return BlockModel(
-      id: (json['id'] ?? json['Id'] ?? '').toString(),
+      id: asText(json['id'] ?? json['Id']),
       blockedUser: UserLite.fromJson(
-        (json['blockedUser'] ?? json['BlockedUser'] ?? <String, dynamic>{})
-            as Map<String, dynamic>,
-      ),
+          asJsonMap(json['blockedUser'] ?? json['BlockedUser']) ??
+              <String, dynamic>{}),
       createdAt: DateTime.tryParse(
             (json['createdAt'] ?? json['CreatedAt'] ?? '').toString(),
           ) ??
@@ -239,19 +233,15 @@ class SocialSummaryModel {
 
   factory SocialSummaryModel.fromJson(Map<String, dynamic> json) {
     return SocialSummaryModel(
-      userId: (json['userId'] ?? json['UserId'] ?? '').toString(),
-      friendsCount: (json['friendsCount'] ?? json['FriendsCount'] ?? 0) as int,
-      followersCount:
-          (json['followersCount'] ?? json['FollowersCount'] ?? 0) as int,
-      followingCount:
-          (json['followingCount'] ?? json['FollowingCount'] ?? 0) as int,
-      isFriend: (json['isFriend'] ?? json['IsFriend'] ?? false) as bool,
-      isFollowing:
-          (json['isFollowing'] ?? json['IsFollowing'] ?? false) as bool,
-      isBlocked: (json['isBlocked'] ?? json['IsBlocked'] ?? false) as bool,
-      hasPendingRequest: (json['hasPendingRequest'] ??
-          json['HasPendingRequest'] ??
-          false) as bool,
+      userId: asText(json['userId'] ?? json['UserId']),
+      friendsCount: asInt(json['friendsCount'] ?? json['FriendsCount']),
+      followersCount: asInt(json['followersCount'] ?? json['FollowersCount']),
+      followingCount: asInt(json['followingCount'] ?? json['FollowingCount']),
+      isFriend: asBool(json['isFriend'] ?? json['IsFriend']),
+      isFollowing: asBool(json['isFollowing'] ?? json['IsFollowing']),
+      isBlocked: asBool(json['isBlocked'] ?? json['IsBlocked']),
+      hasPendingRequest:
+          asBool(json['hasPendingRequest'] ?? json['HasPendingRequest']),
     );
   }
 }

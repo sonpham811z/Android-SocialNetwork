@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import '../utils/json_helpers.dart';
+
 class UserProfile {
   final String id;
   final String name;
@@ -19,7 +21,7 @@ class UserProfile {
     String lastName = (json['lastName'] ?? '').toString().trim();
     String fullName = (json['fullName'] ?? '').toString().trim();
     String name = (json['name'] ?? '').toString().trim();
-    
+
     // Build display name with priority
     String displayName = '';
     if (name.isNotEmpty) {
@@ -29,15 +31,21 @@ class UserProfile {
     } else if (firstName.isNotEmpty || lastName.isNotEmpty) {
       displayName = '$firstName $lastName'.trim();
     }
-    
+
     // Get username with priority
-    String userName = (json['userName'] ?? json['username'] ?? json['UserName'] ?? json['Username'] ?? '').toString().trim();
-    
+    String userName = (json['userName'] ??
+            json['username'] ??
+            json['UserName'] ??
+            json['Username'] ??
+            '')
+        .toString()
+        .trim();
+
     return UserProfile(
-      id: (json['id'] ?? '').toString(),
+      id: asText(json['id']),
       name: displayName.isEmpty ? 'Unknown User' : displayName,
       handle: userName.isEmpty ? '@unknown' : '@$userName',
-      avatar: (json['profilePictureUrl'] ?? '').toString(),
+      avatar: asText(json['profilePictureUrl']),
     );
   }
 }
@@ -57,16 +65,17 @@ class Comment {
 
   factory Comment.fromApi(Map<String, dynamic> json) {
     return Comment(
-      id: (json['id'] ?? '').toString(),
-      user: UserProfile.fromApi((json['user'] ?? <String, dynamic>{}) as Map<String, dynamic>),
-      content: (json['content'] ?? '').toString(),
-      timestamp: Post.formatTimestamp((json['createdAt'] ?? '').toString()),
+      id: asText(json['id']),
+      user: UserProfile.fromApi(asJsonMap(json['user']) ?? <String, dynamic>{}),
+      content: asText(json['content']),
+      timestamp: Post.formatTimestamp(asText(json['createdAt'])),
     );
   }
 }
 
 class Post {
   final String id;
+  final String userId;
   final UserProfile user;
   final String content; // Caption của bài post
   final String timestamp;
@@ -81,12 +90,13 @@ class Post {
 
   Post({
     required this.id,
+    required this.userId,
     required this.user,
     required this.content,
     required this.timestamp,
     this.image,
-    this.audioUrl,    // [NEW]
-    this.waveform,    // [NEW]
+    this.audioUrl, // [NEW]
+    this.waveform, // [NEW]
     this.audioDuration, // [NEW]
     required this.likes,
     required this.commentsCount,
@@ -112,16 +122,18 @@ class Post {
     }
 
     return Post(
-      id: (json['id'] ?? '').toString(),
-      user: UserProfile.fromApi((json['user'] ?? <String, dynamic>{}) as Map<String, dynamic>),
-      content: (json['content'] ?? '').toString(),
-      timestamp: formatTimestamp((json['createdAt'] ?? '').toString()),
-      image: (json['imageUrl'] ?? '').toString().isEmpty ? null : (json['imageUrl']).toString(),
-      audioUrl: (json['audioUrl'] ?? '').toString().isEmpty ? null : (json['audioUrl']).toString(),
+      id: asText(json['id']),
+      userId: asText(json['userId']),
+      user: UserProfile.fromApi(asJsonMap(json['user']) ?? <String, dynamic>{}),
+      content: asText(json['content']),
+      timestamp: formatTimestamp(asText(json['createdAt'])),
+      image: asText(json['imageUrl']).isEmpty ? null : asText(json['imageUrl']),
+      audioUrl:
+          asText(json['audioUrl']).isEmpty ? null : asText(json['audioUrl']),
       waveform: waveform,
-      audioDuration: (json['audioDuration'] ?? '').toString().isEmpty
+      audioDuration: asText(json['audioDuration']).isEmpty
           ? null
-          : (json['audioDuration']).toString(),
+          : asText(json['audioDuration']),
       likes: _toInt(json['likesCount']),
       commentsCount: _toInt(json['commentsCount']),
       isLikedByCurrentUser: _toBool(json['isLikedByCurrentUser']),
@@ -130,6 +142,7 @@ class Post {
   }
 
   Post copyWith({
+    String? content,
     int? likes,
     int? commentsCount,
     bool? isLikedByCurrentUser,
@@ -137,8 +150,9 @@ class Post {
   }) {
     return Post(
       id: id,
+      userId: userId,
       user: user,
-      content: content,
+      content: content ?? this.content,
       timestamp: timestamp,
       image: image,
       audioUrl: audioUrl,
@@ -262,6 +276,7 @@ class MockData {
     // Post 1: Ảnh bình thường
     Post(
       id: 'p1',
+      userId: 'u2',
       user: UserProfile(
         id: 'u2',
         name: 'Minh Hiếu',
@@ -278,6 +293,7 @@ class MockData {
     // [NEW] Post 2: VOICE POST (Không có ảnh, có audio)
     Post(
       id: 'p_voice_1',
+      userId: 'u_jack',
       user: UserProfile(
         id: 'u_jack',
         name: 'Jack 5 củ',
@@ -289,7 +305,28 @@ class MockData {
       // Không có image
       audioUrl: 'dummy_url',
       audioDuration: '0:45',
-      waveform: [0.3, 0.5, 0.8, 0.4, 0.6, 0.9, 0.5, 0.3, 0.7, 0.4, 0.6, 0.8, 0.5, 0.9, 0.3, 0.6, 0.8, 0.4, 0.7, 0.2],
+      waveform: [
+        0.3,
+        0.5,
+        0.8,
+        0.4,
+        0.6,
+        0.9,
+        0.5,
+        0.3,
+        0.7,
+        0.4,
+        0.6,
+        0.8,
+        0.5,
+        0.9,
+        0.3,
+        0.6,
+        0.8,
+        0.4,
+        0.7,
+        0.2
+      ],
       likes: 999,
       commentsCount: 200,
     ),
@@ -297,6 +334,7 @@ class MockData {
     // Post 3: Text only (Bình thường)
     Post(
       id: 'p2',
+      userId: 'u6',
       user: UserProfile(
         id: 'u6',
         name: 'Hoàng Anh',
@@ -309,9 +347,10 @@ class MockData {
       commentsCount: 12,
     ),
 
-     // [NEW] Post 4: VOICE POST
+    // [NEW] Post 4: VOICE POST
     Post(
       id: 'p_voice_2',
+      userId: 'u_tung',
       user: UserProfile(
         id: 'u_tung',
         name: 'Sơn Tùng',
@@ -322,7 +361,28 @@ class MockData {
       timestamp: '1 giờ trước',
       audioUrl: 'dummy_url_2',
       audioDuration: '1:30',
-      waveform: [0.2, 0.4, 0.6, 0.8, 1.0, 0.8, 0.6, 0.4, 0.2, 0.1, 0.3, 0.5, 0.7, 0.9, 0.6, 0.4, 0.2, 0.5, 0.8, 0.3],
+      waveform: [
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0,
+        0.8,
+        0.6,
+        0.4,
+        0.2,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        0.9,
+        0.6,
+        0.4,
+        0.2,
+        0.5,
+        0.8,
+        0.3
+      ],
       likes: 5000,
       commentsCount: 1500,
     ),

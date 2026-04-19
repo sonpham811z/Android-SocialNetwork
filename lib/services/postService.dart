@@ -4,30 +4,48 @@ import '../config/environment.dart';
 import '../models/feedModel.dart';
 import 'apiClient.dart';
 
+class PostListResult {
+  final List<Post> posts;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+
+  const PostListResult({
+    required this.posts,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+  });
+}
+
 class PostService {
   final ApiClient _apiClient = ApiClient();
 
   String get _postBaseUrl => '${Environment.postServiceBaseUrl}/post';
 
-  Future<List<Post>> getFeed({int page = 1, int pageSize = 20}) async {
+  Future<PostListResult> getFeed({int page = 1, int pageSize = 20}) async {
     try {
       final response = await _apiClient.dio.get(
         '$_postBaseUrl/feed',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
-      return _extractPosts(response.data);
+      return _extractPostListResult(response.data, page: page, pageSize: pageSize);
     } on DioException catch (e) {
       throw Exception(ApiClient.buildReadableErrorMessage(e));
     }
   }
 
-  Future<List<Post>> getUserPosts(String userId, {int page = 1, int pageSize = 20}) async {
+  Future<PostListResult> getUserPosts(
+    String userId, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     try {
       final response = await _apiClient.dio.get(
         '$_postBaseUrl/user/$userId',
         queryParameters: {'page': page, 'pageSize': pageSize},
       );
-      return _extractPosts(response.data);
+      return _extractPostListResult(response.data, page: page, pageSize: pageSize);
     } on DioException catch (e) {
       throw Exception(ApiClient.buildReadableErrorMessage(e));
     }
@@ -119,6 +137,31 @@ class PostService {
     }
   }
 
+  Future<Post?> updatePost({
+    required String postId,
+    required String content,
+    String visibility = 'Public',
+  }) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '$_postBaseUrl/$postId',
+        data: {'content': content, 'visibility': visibility},
+      );
+      return _extractSinglePost(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> deletePost(String postId) async {
+    try {
+      final response = await _apiClient.dio.delete('$_postBaseUrl/$postId');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<List<Comment>> getComments(String postId) async {
     try {
       final response = await _apiClient.dio.get('$_postBaseUrl/$postId/comments');
@@ -179,27 +222,62 @@ class PostService {
     return true;
   }
 
-  List<Post> _extractPosts(dynamic raw) {
+  PostListResult _extractPostListResult(
+    dynamic raw, {
+    required int page,
+    required int pageSize,
+  }) {
     final payload = _readData(raw);
 
     if (payload is Map<String, dynamic>) {
       final items = payload['items'];
       if (items is List) {
-        return items
+        final posts = items
             .whereType<Map>()
             .map((item) => Post.fromApi(item.cast<String, dynamic>()))
             .toList();
+
+        return PostListResult(
+          posts: posts,
+          totalCount: _readTotalCount(payload, posts.length),
+          page: _readInt(payload['page'] ?? payload['Page'], fallback: page),
+          pageSize: _readInt(payload['pageSize'] ?? payload['PageSize'], fallback: pageSize),
+        );
       }
     }
 
     if (payload is List) {
-      return payload
+      final posts = payload
           .whereType<Map>()
           .map((item) => Post.fromApi(item.cast<String, dynamic>()))
           .toList();
+
+      return PostListResult(
+        posts: posts,
+        totalCount: posts.length,
+        page: page,
+        pageSize: pageSize,
+      );
     }
 
-    return [];
+    return PostListResult(posts: [], totalCount: 0, page: page, pageSize: pageSize);
+  }
+
+  int _readTotalCount(Map<String, dynamic> payload, int fallback) {
+    return _readInt(
+      payload['totalCount'] ??
+          payload['TotalCount'] ??
+          payload['totalItems'] ??
+          payload['TotalItems'],
+      fallback: fallback,
+    );
+  }
+
+  int _readInt(dynamic value, {required int fallback}) {
+    if (value is int) {
+      return value;
+    }
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
   dynamic _readData(dynamic raw) {

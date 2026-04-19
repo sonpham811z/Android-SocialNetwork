@@ -3,6 +3,7 @@ import 'package:flutter_social_app/screens/appScreen/friendRequestScreen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_social_app/screens/appScreen/homeScreen.dart';
 import '../../config/theme.dart';
+import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
@@ -63,11 +64,94 @@ class _FeedScreenState extends State<FeedScreen> {
     });
   }
 
+  Future<void> _showEditPostDialog(PostProvider postProvider, Post post) async {
+    final controller = TextEditingController(text: post.content);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF18181B),
+          title: const Text('Chỉnh sửa bài viết', style: TextStyle(color: Colors.white)),
+          content: TextField(
+            controller: controller,
+            maxLines: 5,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Nội dung bài viết',
+              hintStyle: TextStyle(color: Colors.white54),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Lưu'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (saved != true || !mounted) {
+      return;
+    }
+
+    final success = await context.read<PostProvider>().updatePost(
+      postId: post.id,
+      content: controller.text,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(success ? 'Đã cập nhật bài viết.' : (postProvider.error ?? 'Không thể cập nhật bài viết.'))),
+    );
+  }
+
+  Future<void> _confirmDeletePost(PostProvider postProvider, Post post) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF18181B),
+          title: const Text('Xóa bài viết', style: TextStyle(color: Colors.white)),
+          content: const Text(
+            'Bạn có chắc muốn xóa bài viết này không?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Xóa'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final success = await context.read<PostProvider>().deletePost(post.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(success ? 'Đã xóa bài viết.' : (postProvider.error ?? 'Không thể xóa bài viết.'))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final postProvider = context.watch<PostProvider>();
+    final currentUserId = context.watch<AuthProvider>().user?.id ?? '';
     final currentAvatar = context.watch<UserProfileProvider>().profile?.avatar;
     final feedPosts = postProvider.feedPosts;
 
@@ -155,7 +239,10 @@ class _FeedScreenState extends State<FeedScreen> {
                                                 isExpanded: _expandedPostId == post.id,
                                                 onToggleComments: () => _toggleComments(post.id),
                                                 currentUserAvatar: currentAvatar,
+                                                canManage: post.userId == currentUserId,
                                                 onToggleLike: () => context.read<PostProvider>().toggleLike(post),
+                                                onEditPost: () => _showEditPostDialog(postProvider, post),
+                                                onDeletePost: () => _confirmDeletePost(postProvider, post),
                                                 onLoadComments: () => context.read<PostProvider>().loadComments(post.id),
                                                 onSubmitComment: (content) =>
                                                     context.read<PostProvider>().createComment(post.id, content),
