@@ -5,6 +5,38 @@ import 'apiClient.dart';
 import '../models/userModel.dart';
 import '../utils/json_helpers.dart';
 
+class UserSearchResult {
+  final String id;
+  final String username;
+  final String fullName;
+  final String? profilePictureUrl;
+  final bool isVerified;
+  final String? location;
+
+  const UserSearchResult({
+    required this.id,
+    required this.username,
+    required this.fullName,
+    this.profilePictureUrl,
+    this.isVerified = false,
+    this.location,
+  });
+
+  factory UserSearchResult.fromJson(Map<String, dynamic> json) {
+    return UserSearchResult(
+      id: (json['id'] ?? json['Id'] ?? '').toString(),
+      username: (json['username'] ?? json['Username'] ?? '').toString(),
+      fullName: (json['fullName'] ?? json['FullName'] ?? '').toString(),
+      profilePictureUrl:
+          (json['profilePictureUrl'] ?? json['ProfilePictureUrl'])?.toString(),
+      isVerified: UserProfileResponse._parseBool(
+        json['isVerified'] ?? json['IsVerified'],
+      ),
+      location: (json['location'] ?? json['Location'])?.toString(),
+    );
+  }
+}
+
 class UserProfileResponse<T> {
   final bool success;
   final String message;
@@ -73,7 +105,7 @@ class UserProfileService {
         );
 
         if (parsed.success && parsed.data != null) {
-          return parsed.data;
+return parsed.data;
         }
 
         throw Exception(parsed.message.isEmpty
@@ -91,6 +123,60 @@ class UserProfileService {
     try {
       final response = await _apiClient.dio.get('$_userProfileBaseUrl/me');
       return _parseUserResponse(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data.toString() ?? e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<User?> getProfileByUsername(String username) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_userProfileBaseUrl/username/${Uri.encodeComponent(username)}',
+      );
+      return _parseUserResponse(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data.toString() ?? e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<List<UserSearchResult>> searchUsersByUsername(
+    String query, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_userProfileBaseUrl/search',
+        queryParameters: {
+          'q': query,
+          'page': page,
+          'pageSize': pageSize,
+        },
+      );
+
+      final body = asJsonMap(response.data);
+      if (body == null) {
+        throw Exception('Invalid search response format.');
+      }
+
+      final success = UserProfileResponse._parseBool(
+        body['success'] ?? body['Success'] ?? body['isSuccess'] ?? body['IsSuccess'],
+      );
+      if (!success) {
+        throw Exception((body['message'] ?? body['Message'] ?? 'Search failed').toString());
+      }
+
+      final data = asJsonMap(body['data'] ?? body['Data']) ?? <String, dynamic>{};
+      final rawItems = asJsonList(data['items'] ?? data['Items']) ?? const <dynamic>[];
+
+      return rawItems
+          .map((item) => UserSearchResult.fromJson(asJsonMap(item) ?? <String, dynamic>{}))
+          .where((item) => item.username.trim().isNotEmpty)
+          .toList();
     } on DioException catch (e) {
       throw Exception(e.response?.data.toString() ?? e.message);
     } catch (e) {
@@ -119,7 +205,7 @@ class UserProfileService {
       });
 
       final response = await _apiClient.dio.post(
-        '$_userProfileBaseUrl/upload-profile-picture',
+'$_userProfileBaseUrl/upload-profile-picture',
         data: formData,
       );
 
