@@ -13,14 +13,16 @@ class StatusInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF18181B),
+          color: isDark ? const Color(0xFF18181B) : Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppTheme.slate900),
+          border: Border.all(color: isDark ? AppTheme.slate900 : AppTheme.slate200),
         ),
         child: Row(
           children: [
@@ -33,7 +35,7 @@ class StatusInput extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF0F0F10),
+                      color: isDark ? const Color(0xFF0F0F10) : Colors.white,
                       width: 2,
                     ),
                   ),
@@ -43,8 +45,11 @@ class StatusInput extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: AppTheme.slate800,
-                          child: const Icon(Icons.person, color: Colors.white),
+                          color: isDark ? AppTheme.slate800 : AppTheme.slate100,
+                          child: Icon(
+                            Icons.person,
+                            color: isDark ? Colors.white : AppTheme.slate600,
+                          ),
                         );
                       },
                     ),
@@ -60,7 +65,7 @@ class StatusInput extends StatelessWidget {
                       color: Colors.blue,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF18181B),
+                        color: isDark ? const Color(0xFF18181B) : Colors.white,
                         width: 2,
                       ),
                     ),
@@ -81,7 +86,7 @@ class StatusInput extends StatelessWidget {
               'Hôm nay bạn thế nào?',
               style: TextStyle(
                 fontSize: 15,
-                color: AppTheme.slate500,
+                color: isDark ? AppTheme.slate500 : AppTheme.slate600,
                 fontWeight: FontWeight.w500,
               ),
             ),

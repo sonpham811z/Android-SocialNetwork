@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/authService.dart';
 
 
@@ -8,14 +9,54 @@ class AuthProvider with ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isCheckingAuth = true;
   bool _isLoading = false;
+  bool _shouldShowIntro = false;
   String? _error;
   UserData? _user;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isCheckingAuth => _isCheckingAuth;
   bool get isLoading => _isLoading;
+  bool get shouldShowIntro => _shouldShowIntro;
   String? get error => _error;
   UserData? get user => _user;
+
+  String _introSeenKey(String userId) => 'intro_seen_$userId';
+
+  UserData _mapUserData(Map<String, dynamic> userData) {
+    return UserData(
+      id: userData['sub']?.toString() ?? userData['id']?.toString() ?? '',
+      email: userData['email'] ?? '',
+      firstName: userData['firstName'] ?? '',
+      lastName: userData['lastName'] ?? '',
+      isEmailConfirmed: userData['isEmailConfirmed'] ?? false,
+    );
+  }
+
+  Future<void> _loadIntroVisibilityForCurrentUser() async {
+    final userId = (_user?.id ?? '').trim();
+    if (userId.isEmpty) {
+      _shouldShowIntro = false;
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final isIntroSeen = prefs.getBool(_introSeenKey(userId)) ?? false;
+    _shouldShowIntro = !isIntroSeen;
+  }
+
+  Future<void> markIntroAsSeen() async {
+    final userId = (_user?.id ?? '').trim();
+    if (userId.isEmpty) {
+      _shouldShowIntro = false;
+      notifyListeners();
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_introSeenKey(userId), true);
+    _shouldShowIntro = false;
+    notifyListeners();
+  }
 
   AuthProvider() {
     checkAuthStatus();
@@ -31,20 +72,17 @@ class AuthProvider with ChangeNotifier {
       if (_isAuthenticated) {
         final userData = await _authService.getCurrentUser();
         if(userData != null) {
-          _user = UserData(
-            id: userData['sub']?.toString() ?? userData['id']?.toString() ?? '',
-            email: userData['email'] ?? '',
-            firstName: userData['firstName'] ?? '',
-            lastName: userData['lastName'] ?? '',
-            isEmailConfirmed: userData['isEmailConfirmed'] ?? false,
-          );
+          _user = _mapUserData(userData);
+          await _loadIntroVisibilityForCurrentUser();
         }
       } else {
         _user = null;
+        _shouldShowIntro = false;
       }
     } catch (e) {
       _isAuthenticated = false;
       _user = null;
+      _shouldShowIntro = false;
     } finally {
       // BẮT BUỘC PHẢI CÓ: Chạy xong thì tắt cờ loading và báo UI cập nhật
       _isCheckingAuth = false;
@@ -78,6 +116,7 @@ class AuthProvider with ChangeNotifier {
       {
         _user = response.data!.user;
         _isAuthenticated = true;
+        await _loadIntroVisibilityForCurrentUser();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -164,6 +203,7 @@ class AuthProvider with ChangeNotifier {
       if (response.success && response.data != null) {
         _user = response.data!.user;
         _isAuthenticated = true;
+        await _loadIntroVisibilityForCurrentUser();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -228,6 +268,7 @@ class AuthProvider with ChangeNotifier {
       if (response.success && response.data != null) {
         _user = response.data!.user;
         _isAuthenticated = true;
+        await _loadIntroVisibilityForCurrentUser();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -264,6 +305,7 @@ class AuthProvider with ChangeNotifier {
     } finally {
       _isAuthenticated = false;
       _user = null;
+      _shouldShowIntro = false;
       _error = null;
       _isLoading = false;
       notifyListeners();
@@ -301,13 +343,8 @@ class AuthProvider with ChangeNotifier {
   Future<void> refreshUserData() async {
     final userData = await _authService.getCurrentUser();
     if (userData != null) {
-      _user = UserData(
-        id: userData['sub']?.toString() ?? userData['id']?.toString() ?? '',
-        email: userData['email'] ?? '',
-        firstName: userData['firstName'] ?? '',
-        lastName: userData['lastName'] ?? '',
-        isEmailConfirmed: userData['isEmailConfirmed'] ?? false,
-      );
+      _user = _mapUserData(userData);
+      await _loadIntroVisibilityForCurrentUser();
       notifyListeners();
     }
   }

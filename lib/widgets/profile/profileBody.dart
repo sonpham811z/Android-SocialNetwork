@@ -518,35 +518,115 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
     }
 
     if (_tabController.index == 1) {
-      final details = <MapEntry<String, String>>[
-        MapEntry('Email', profile.email),
-        MapEntry('Username', (profile.username ?? '').isEmpty ? '-' : '@${profile.username}'),
-        MapEntry('Phone', profile.phoneNumber ?? '-'),
-        MapEntry('Website', profile.website ?? '-'),
-        MapEntry('Date of birth', _formatDate(profile.dateOfBirth) ?? '-'),
-        MapEntry('Age', profile.age?.toString() ?? '-'),
-        MapEntry('Gender', profile.gender ?? '-'),
-        MapEntry('Location', _buildLocation(profile)),
-        MapEntry('Last active', _formatDateTime(profile.lastActiveAt) ?? '-'),
+      final details = <_AboutDetailItem>[
+        _AboutDetailItem(icon: Icons.mail_outline, title: 'Email', value: profile.email),
+        _AboutDetailItem(
+          icon: Icons.alternate_email,
+          title: 'Username',
+          value: (profile.username ?? '').isEmpty ? '-' : '@${profile.username}',
+        ),
+        _AboutDetailItem(icon: Icons.phone_outlined, title: 'Phone', value: profile.phoneNumber ?? '-'),
+        _AboutDetailItem(icon: Icons.language_outlined, title: 'Website', value: profile.website ?? '-'),
+        _AboutDetailItem(
+          icon: Icons.cake_outlined,
+          title: 'Date of birth',
+          value: _formatDate(profile.dateOfBirth) ?? '-',
+        ),
+        _AboutDetailItem(icon: Icons.hourglass_bottom_outlined, title: 'Age', value: profile.age?.toString() ?? '-'),
+        _AboutDetailItem(icon: Icons.person_outline, title: 'Gender', value: profile.gender ?? '-'),
+        _AboutDetailItem(icon: Icons.location_on_outlined, title: 'Location', value: _buildLocation(profile)),
+        _AboutDetailItem(
+          icon: Icons.access_time_outlined,
+          title: 'Last active',
+          value: _formatDateTime(profile.lastActiveAt) ?? '-',
+        ),
       ];
 
       return SliverList(
         delegate: SliverChildListDelegate([
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.slate800 : Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: isDark ? AppTheme.slate700 : AppTheme.slate200,
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? const [Color(0xFF242839), Color(0xFF1D2030)]
+                          : const [Color(0xFFE9EEFF), Color(0xFFF3F6FF)],
+                    ),
+                    border: Border.all(
+                      color: isDark ? AppTheme.slate700 : const Color(0xFFD8E2FF),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.badge_outlined, color: AppTheme.violetPrimary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'About',
+                            style: TextStyle(
+                              color: isDark ? Colors.white : AppTheme.slate900,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        (profile.bio ?? '').trim().isEmpty
+                            ? 'Them mot doan gioi thieu ngan gon de profile cua ban co ca tinh hon.'
+                            : profile.bio!,
+                        style: TextStyle(
+                          color: isDark ? Colors.white.withOpacity(0.9) : AppTheme.slate800,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildChip(
+                            icon: profile.isPrivate ? Icons.lock_outline : Icons.public,
+                            label: profile.isPrivate ? 'Private profile' : 'Public profile',
+                            isDark: isDark,
+                          ),
+                          _buildChip(
+                            icon: Icons.calendar_month_outlined,
+                            label: _formatJoined(profile.createdAt),
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              child: Column(
-                children: details
-                    .map((entry) => _buildDetailRow(isDark, entry.key, entry.value))
-                    .toList(),
-              ),
+                const SizedBox(height: 14),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? AppTheme.slate800 : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isDark ? AppTheme.slate700 : AppTheme.slate200,
+                    ),
+                  ),
+                  child: Column(
+                    children: details
+                        .map((entry) => _buildAboutDetailRow(isDark, entry))
+                        .toList(),
+                  ),
+                ),
+              ],
             ),
           ),
         ]),
@@ -655,7 +735,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildDetailRow(bool isDark, String title, String value) {
+  Widget _buildAboutDetailRow(bool isDark, _AboutDetailItem item) {
     return Container(
       decoration: BoxDecoration(
         border: Border(
@@ -664,23 +744,36 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(color: AppTheme.slate500, fontSize: 13),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2B3044) : const Color(0xFFF2F5FF),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(item.icon, size: 18, color: AppTheme.violetPrimary),
           ),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: isDark ? Colors.white : AppTheme.slate900,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: TextStyle(color: AppTheme.slate500, fontSize: 12.5),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.value,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppTheme.slate900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -916,77 +1009,124 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                   const SizedBox(height: 12),
                   _buildPhotoActions(isDark),
                   const SizedBox(height: 14),
-                  _buildTextField(
-                    _firstNameController,
-                    'First name',
+                  _buildSectionTitle('Basic information', isDark),
+                  _buildSectionCard(
                     isDark,
-                    validator: (value) {
-                      if ((value ?? '').trim().isEmpty) {
-                        return 'First name khong duoc de trong';
-                      }
-                      return null;
-                    },
+                    children: [
+                      _buildTextField(
+                        _firstNameController,
+                        'First name',
+                        isDark,
+                        icon: Icons.person_outline,
+                        validator: (value) {
+                          if ((value ?? '').trim().isEmpty) {
+                            return 'First name khong duoc de trong';
+                          }
+                          return null;
+                        },
+                      ),
+                      _buildTextField(
+                        _lastNameController,
+                        'Last name',
+                        isDark,
+                        icon: Icons.person_outline,
+                        validator: (value) {
+                          if ((value ?? '').trim().isEmpty) {
+                            return 'Last name khong duoc de trong';
+                          }
+                          return null;
+                        },
+                      ),
+                      _buildTextField(
+                        _bioController,
+                        'Bio',
+                        isDark,
+                        icon: Icons.edit_note_outlined,
+                        maxLines: 3,
+                        maxLength: 500,
+                      ),
+                      _buildTextField(
+                        _genderController,
+                        'Gender',
+                        isDark,
+                        icon: Icons.wc_outlined,
+                      ),
+                    ],
                   ),
-                  _buildTextField(
-                    _lastNameController,
-                    'Last name',
+                  const SizedBox(height: 10),
+                  _buildSectionTitle('Contact & place', isDark),
+                  _buildSectionCard(
                     isDark,
-                    validator: (value) {
-                      if ((value ?? '').trim().isEmpty) {
-                        return 'Last name khong duoc de trong';
-                      }
-                      return null;
-                    },
+                    children: [
+                      _buildTextField(
+                        _locationController,
+                        'Location',
+                        isDark,
+                        icon: Icons.location_on_outlined,
+                      ),
+                      _buildTextField(
+                        _cityController,
+                        'City',
+                        isDark,
+                        icon: Icons.location_city_outlined,
+                      ),
+                      _buildTextField(
+                        _countryController,
+                        'Country',
+                        isDark,
+                        icon: Icons.public,
+                      ),
+                      _buildTextField(
+                        _websiteController,
+                        'Website',
+                        isDark,
+                        icon: Icons.language_outlined,
+                        keyboardType: TextInputType.url,
+                        validator: (value) {
+                          final text = (value ?? '').trim();
+                          if (text.isEmpty) {
+                            return null;
+                          }
+                          final uri = Uri.tryParse(text);
+                          if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) {
+                            return 'Website phai bat dau bang http:// hoac https://';
+                          }
+                          return null;
+                        },
+                      ),
+                      _buildTextField(
+                        _phoneController,
+                        'Phone number',
+                        isDark,
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
+                    ],
                   ),
-                  _buildTextField(
-                    _bioController,
-                    'Bio',
+                  const SizedBox(height: 10),
+                  _buildSectionTitle('Privacy & birthday', isDark),
+                  _buildSectionCard(
                     isDark,
-                    maxLines: 3,
-                    maxLength: 500,
-                  ),
-                  _buildTextField(_genderController, 'Gender', isDark),
-                  _buildTextField(_locationController, 'Location', isDark),
-                  _buildTextField(_cityController, 'City', isDark),
-                  _buildTextField(_countryController, 'Country', isDark),
-                  _buildTextField(
-                    _websiteController,
-                    'Website',
-                    isDark,
-                    keyboardType: TextInputType.url,
-                    validator: (value) {
-                      final text = (value ?? '').trim();
-                      if (text.isEmpty) {
-                        return null;
-                      }
-                      final uri = Uri.tryParse(text);
-                      if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) {
-                        return 'Website phai bat dau bang http:// hoac https://';
-                      }
-                      return null;
-                    },
-                  ),
-                  _buildTextField(
-                    _phoneController,
-                    'Phone number',
-                    isDark,
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildDatePicker(isDark),
-                  const SizedBox(height: 8),
-                  SwitchListTile.adaptive(
-                    value: _isPrivate,
-                    onChanged: (value) {
-                      setState(() {
-                        _isPrivate = value;
-                      });
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Private profile',
-                      style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
-                    ),
+                    children: [
+                      _buildDatePicker(isDark),
+                      SwitchListTile.adaptive(
+                        value: _isPrivate,
+                        onChanged: (value) {
+                          setState(() {
+                            _isPrivate = value;
+                          });
+                        },
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        title: Text(
+                          'Private profile',
+                          style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
+                        ),
+                        subtitle: Text(
+                          'Bat de gioi han nguoi la xem thong tin ca nhan.',
+                          style: TextStyle(color: AppTheme.slate500, fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -1066,35 +1206,53 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   }
 
   Widget _buildPhotoActions(bool isDark) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(isAvatar: true),
-            icon: const Icon(Icons.account_circle_outlined),
-            label: const Text('Avatar'),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(isAvatar: false),
-            icon: const Icon(Icons.landscape_outlined),
-            label: const Text('Cover'),
-          ),
-        ),
-        if (_isUploadingImage) ...[
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: isDark ? Colors.white : AppTheme.slate900,
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B1D22) : const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? AppTheme.slate700 : AppTheme.slate200),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(isAvatar: true),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: isDark ? AppTheme.slate600 : AppTheme.slate300),
+                foregroundColor: isDark ? Colors.white : AppTheme.slate900,
+              ),
+              icon: const Icon(Icons.account_circle_outlined),
+              label: const Text('Avatar'),
             ),
           ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(isAvatar: false),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: isDark ? AppTheme.slate600 : AppTheme.slate300),
+                foregroundColor: isDark ? Colors.white : AppTheme.slate900,
+              ),
+              icon: const Icon(Icons.landscape_outlined),
+              label: const Text('Cover'),
+            ),
+          ),
+          if (_isUploadingImage) ...[
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: isDark ? Colors.white : AppTheme.slate900,
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -1102,6 +1260,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     TextEditingController controller,
     String label,
     bool isDark, {
+    IconData? icon,
     int maxLines = 1,
     int? maxLength,
     TextInputType? keyboardType,
@@ -1118,6 +1277,9 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
         decoration: InputDecoration(
           labelText: label,
+          prefixIcon: icon == null
+              ? null
+              : Icon(icon, size: 18, color: AppTheme.slate500),
           filled: true,
           fillColor: isDark ? AppTheme.slate800 : AppTheme.slate100,
           border: OutlineInputBorder(
@@ -1126,6 +1288,33 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.white70 : AppTheme.slate700,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(bool isDark, {required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B1D22) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? AppTheme.slate700 : AppTheme.slate200),
+      ),
+      child: Column(children: children),
     );
   }
 
@@ -1270,6 +1459,18 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   }
 }
 
+class _AboutDetailItem {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _AboutDetailItem({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+}
+
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar _tabBar;
   final bool isDark;
@@ -1291,6 +1492,6 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
+    return oldDelegate.isDark != isDark || oldDelegate._tabBar != _tabBar;
   }
 }
