@@ -65,20 +65,26 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Future<void> _showEditPostDialog(PostProvider postProvider, Post post) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final controller = TextEditingController(text: post.content);
     final saved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: const Text('Chỉnh sửa bài viết', style: TextStyle(color: Colors.white)),
+          backgroundColor: isDark ? const Color(0xFF18181B) : Colors.white,
+          title: Text(
+            'Chỉnh sửa bài viết',
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
+          ),
           content: TextField(
             controller: controller,
             maxLines: 5,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
+            decoration: InputDecoration(
               hintText: 'Nội dung bài viết',
-              hintStyle: TextStyle(color: Colors.white54),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white54 : AppTheme.slate500,
+              ),
             ),
           ),
           actions: [
@@ -111,15 +117,21 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Future<void> _confirmDeletePost(PostProvider postProvider, Post post) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: const Text('Xóa bài viết', style: TextStyle(color: Colors.white)),
-          content: const Text(
+          backgroundColor: isDark ? const Color(0xFF18181B) : Colors.white,
+          title: Text(
+            'Xóa bài viết',
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
+          ),
+          content: Text(
             'Bạn có chắc muốn xóa bài viết này không?',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : AppTheme.slate700,
+            ),
           ),
           actions: [
             TextButton(
@@ -149,6 +161,7 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final postProvider = context.watch<PostProvider>();
     final currentUserId = context.watch<AuthProvider>().user?.id ?? '';
@@ -165,7 +178,8 @@ class _FeedScreenState extends State<FeedScreen> {
         return 0; // Mặc định
     }
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F10),
+      backgroundColor:
+          isDark ? const Color(0xFF0F0F10) : Theme.of(context).colorScheme.surface,
       body: Stack(
         children: [
           SafeArea(
@@ -192,7 +206,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        _buildFeedHeader(),
+                                        _buildFeedHeader(isDark),
                                         const SizedBox(height: 24),
                                         StatusInput(
                                           onTap: _toggleCreateModal,
@@ -212,7 +226,11 @@ class _FeedScreenState extends State<FeedScreen> {
                                                 Text(
                                                   postProvider.error!,
                                                   textAlign: TextAlign.center,
-                                                  style: const TextStyle(color: Colors.white70),
+                                                  style: TextStyle(
+                                                    color: isDark
+                                                        ? Colors.white70
+                                                        : AppTheme.slate700,
+                                                  ),
                                                 ),
                                                 const SizedBox(height: 10),
                                                 ElevatedButton(
@@ -223,11 +241,15 @@ class _FeedScreenState extends State<FeedScreen> {
                                             ),
                                           )
                                         else if (feedPosts.isEmpty)
-                                          const Padding(
+                                          Padding(
                                             padding: EdgeInsets.symmetric(vertical: 24),
                                             child: Text(
                                               'Chưa có bài viết nào trong bảng tin.',
-                                              style: TextStyle(color: Colors.white70),
+                                              style: TextStyle(
+                                                color: isDark
+                                                    ? Colors.white70
+                                                    : AppTheme.slate700,
+                                              ),
                                             ),
                                           )
                                         else
@@ -287,20 +309,23 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   } // <--- Thêm dấu đóng hàm build ở đây
 
-  Widget _buildFeedHeader() {
+  Widget _buildFeedHeader(bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Bảng tin',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: isDark ? Colors.white : AppTheme.slate900,
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.tune, color: AppTheme.slate400),
+          icon: Icon(
+            Icons.tune,
+            color: isDark ? AppTheme.slate400 : AppTheme.slate600,
+          ),
           onPressed: () {},
         ),
       ],

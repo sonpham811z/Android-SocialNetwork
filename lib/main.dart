@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:app_links/app_links.dart';
 
 import 'providers/authProvider.dart';
+import 'providers/conversationProvider.dart';
 import 'providers/friendProvider.dart';
 import 'providers/postProvider.dart';
 import 'providers/themeProvider.dart';
@@ -11,6 +12,7 @@ import 'providers/userProfileProvider.dart';
 import 'screens/authScreen/loginScreen.dart';
 import 'screens/authScreen/signupScreen.dart';
 import 'screens/appScreen/homeScreen.dart';
+import 'screens/appScreen/introOnboardingScreen.dart';
 import 'config/theme.dart';
 import 'widgets/authGuard/authGuard.dart';
 import 'screens/authScreen/resetPasswordScreen.dart';
@@ -103,6 +105,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => UserProfileProvider()),
         ChangeNotifierProvider(create: (_) => FriendProvider()),
         ChangeNotifierProvider(create: (_) => PostProvider()),
+        ChangeNotifierProvider(create: (_) => ConversationProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
@@ -113,23 +116,45 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-            home: Consumer<AuthProvider>(
-              builder: (context, authProvider, _) {
-                if (authProvider.isAuthenticated) {
-                  return const HomeScreen();
-                }
-                return const LoginScreen();
-              },
-            ),
+            home: const _PostAuthEntryScreen(),
             routes: {
               '/login': (context) => const LoginScreen(),
               '/signup': (context) => const SignupScreen(),
-              '/home': (context) => const AuthGuard(child: HomeScreen()),
+              '/home': (context) => const AuthGuard(child: _PostAuthEntryScreen()),
               '/friend-requests': (context) => FriendRequestScreen(),
             },
           );
         },
       ),
+    );
+  }
+}
+
+class _PostAuthEntryScreen extends StatelessWidget {
+  const _PostAuthEntryScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        if (authProvider.isCheckingAuth) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (!authProvider.isAuthenticated) {
+          return const LoginScreen();
+        }
+
+        if (authProvider.shouldShowIntro) {
+          return IntroOnboardingScreen(
+            onCompleted: () => context.read<AuthProvider>().markIntroAsSeen(),
+          );
+        }
+
+        return const HomeScreen();
+      },
     );
   }
 }

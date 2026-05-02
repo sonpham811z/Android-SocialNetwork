@@ -32,10 +32,12 @@ class PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF18181B) : Colors.white;
+    final primaryText = isDark ? Colors.white : AppTheme.slate900;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF18181B) : Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.slate200,
@@ -63,7 +65,7 @@ class PostCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   height: 1.5,
                   fontSize: 15,
-                  color: isDark ? Colors.white : AppTheme.slate900,
+                  color: primaryText,
                 ),
               ),
             ),
@@ -88,9 +90,13 @@ class PostCard extends StatelessWidget {
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       height: 200,
-                      color: AppTheme.slate200,
-                      child: const Center(
-                          child: Icon(Icons.broken_image, color: Colors.grey)),
+                      color: isDark ? const Color(0xFF202024) : AppTheme.slate100,
+                      child: Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          color: isDark ? AppTheme.slate500 : AppTheme.slate400,
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -129,9 +135,10 @@ class PostCard extends StatelessWidget {
                   children: [
                     Text(
                       post.user.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
+                        color: isDark ? Colors.white : AppTheme.slate900,
                       ),
                     ),
                     if (post.id.contains('voice')) 
@@ -163,9 +170,25 @@ class PostCard extends StatelessWidget {
                   onDeletePost?.call();
                 }
               },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Chỉnh sửa bài viết')),
-                PopupMenuItem(value: 'delete', child: Text('Xóa bài viết')),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Text(
+                    'Chỉnh sửa bài viết',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppTheme.slate900,
+                    ),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text(
+                    'Xóa bài viết',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppTheme.slate900,
+                    ),
+                  ),
+                ),
               ],
             )
           else
@@ -269,7 +292,11 @@ class PostCard extends StatelessWidget {
                     ? null
                     : NetworkImage(currentUserAvatar!.trim()),
                 child: (currentUserAvatar ?? '').trim().isEmpty
-                    ? const Icon(Icons.person, size: 16)
+                    ? Icon(
+                        Icons.person,
+                        size: 16,
+                        color: isDark ? Colors.white70 : AppTheme.slate600,
+                      )
                     : null,
               ),
               const SizedBox(width: 12),
@@ -293,7 +320,7 @@ class PostCard extends StatelessWidget {
                       await onSubmitComment?.call(normalized);
                     },
                     style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black, 
+                      color: isDark ? Colors.white : AppTheme.slate900,
                       fontSize: 14
                     ),
                     decoration: InputDecoration(
@@ -337,15 +364,19 @@ class PostCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF2A2A2D) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? Colors.transparent : AppTheme.slate200,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         comment.user.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
+                          color: isDark ? Colors.white : AppTheme.slate900,
                         ),
                       ),
                       const SizedBox(height: 4),
