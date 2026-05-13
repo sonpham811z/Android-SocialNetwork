@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import 'changePasswordScreen.dart';
-import '../../providers/authProvider.dart'; // Gọi authProvider để dùng hàm logout
+import '../../providers/authProvider.dart';
+import '../../providers/userProfileProvider.dart';
+import '../../providers/postProvider.dart';
+import '../../providers/friendProvider.dart';
+import '../../providers/conversationProvider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -163,6 +167,12 @@ class SettingsScreen extends StatelessWidget {
               // Đóng dialog
               Navigator.pop(ctx);
               
+              // Clear tất cả provider data trước khi logout
+              context.read<UserProfileProvider>().clear();
+              context.read<PostProvider>().clear();
+              context.read<FriendProvider>().clear();
+              context.read<ConversationProvider>().clear();
+
               // Gọi logic logout từ AuthProvider
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
               await authProvider.logout();

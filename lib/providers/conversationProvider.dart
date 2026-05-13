@@ -25,6 +25,19 @@ class ConversationProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  /// Reset all cached state — call on logout / account switch.
+  void clear() {
+    _messageSubscription?.cancel();
+    _messageSubscription = null;
+    _isInitialized = false;
+    _isLoading = false;
+    _conversations = [];
+    _friends = [];
+    _currentUserId = null;
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> initialize(String currentUserId) async {
     // Same user already initialized — skip
     if (_isInitialized && _currentUserId == currentUserId) return;

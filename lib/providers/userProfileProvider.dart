@@ -17,6 +17,14 @@ class UserProfileProvider with ChangeNotifier {
   String? get error => _error;
   bool get useMockData => _useMockData;
 
+  /// Reset all cached state — call on logout / account switch.
+  void clear() {
+    _profile = null;
+    _isLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> setUseMockData(bool value, {bool reload = true}) async {
     if (_useMockData == value) {
       return;

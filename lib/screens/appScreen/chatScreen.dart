@@ -187,8 +187,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF0F0F10) : Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F10),
+      backgroundColor: scaffoldBg,
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -200,19 +203,25 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final appBarBg = isDark ? const Color(0xFF0F0F10) : Colors.white;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final shadowColor = isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1);
+    final avatarBg = isDark ? AppTheme.slate800 : AppTheme.slate200;
+
     return AppBar(
-      backgroundColor: const Color(0xFF0F0F10),
+      backgroundColor: appBarBg,
       elevation: 1,
-      shadowColor: Colors.white.withOpacity(0.1),
+      shadowColor: shadowColor,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        icon: Icon(Icons.arrow_back, color: textColor),
         onPressed: () => Navigator.pop(context),
       ),
       title: Row(
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: AppTheme.slate800,
+            backgroundColor: avatarBg,
             backgroundImage: widget.friendAvatarUrl != null
                 ? NetworkImage(widget.friendAvatarUrl!)
                 : null,
@@ -221,8 +230,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     widget.friendName.isNotEmpty
                         ? widget.friendName[0].toUpperCase()
                         : '?',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: textColor, fontWeight: FontWeight.bold),
                   )
                 : null,
           ),
@@ -230,8 +239,8 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: Text(
               widget.friendName,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: textColor,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
             ),
@@ -257,6 +266,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     if (_isNotFriend) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final textColor = Theme.of(context).colorScheme.onSurface;
+      final avatarBg = isDark ? AppTheme.slate800 : AppTheme.slate200;
+
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -265,7 +278,7 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               CircleAvatar(
                 radius: 48,
-                backgroundColor: AppTheme.slate800,
+                backgroundColor: avatarBg,
                 backgroundImage: widget.friendAvatarUrl != null
                     ? NetworkImage(widget.friendAvatarUrl!)
                     : null,
@@ -274,8 +287,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         widget.friendName.isNotEmpty
                             ? widget.friendName[0].toUpperCase()
                             : '?',
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: textColor,
                             fontSize: 32,
                             fontWeight: FontWeight.bold),
                       )
@@ -284,8 +297,8 @@ class _ChatScreenState extends State<ChatScreen> {
               const SizedBox(height: 16),
               Text(
                 widget.friendName,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: textColor,
                     fontSize: 18,
                     fontWeight: FontWeight.bold),
               ),
@@ -293,17 +306,17 @@ class _ChatScreenState extends State<ChatScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.slate800.withValues(alpha: 0.5),
+                  color: (isDark ? AppTheme.slate800 : AppTheme.slate200).withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.lock_outline,
                     color: Colors.grey, size: 32),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Chỉ có thể nhắn tin với bạn bè.',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: textColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w500),
               ),
@@ -351,13 +364,17 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     if (_messages.isEmpty) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final textColor = Theme.of(context).colorScheme.onSurface;
+      final avatarBg = isDark ? AppTheme.slate800 : AppTheme.slate200;
+
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircleAvatar(
               radius: 40,
-              backgroundColor: AppTheme.slate800,
+              backgroundColor: avatarBg,
               backgroundImage: widget.friendAvatarUrl != null
                   ? NetworkImage(widget.friendAvatarUrl!)
                   : null,
@@ -366,8 +383,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       widget.friendName.isNotEmpty
                           ? widget.friendName[0].toUpperCase()
                           : '?',
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: textColor,
                           fontSize: 28,
                           fontWeight: FontWeight.bold),
                     )
@@ -376,8 +393,8 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(height: 16),
             Text(
               widget.friendName,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: textColor,
                   fontSize: 18,
                   fontWeight: FontWeight.bold),
             ),
@@ -419,6 +436,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildBubble(MessageModel message) {
     final isMe = message.senderId == _currentUserId;
     final time = formatMessageTime(message.timestamp);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final receivedBubbleBg = isDark
+        ? AppTheme.slate800.withOpacity(0.6)
+        : AppTheme.slate200;
+    final receivedTextColor = isDark ? Colors.white : AppTheme.slate900;
+    final timeColor = isDark ? Colors.grey : AppTheme.slate500;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -436,7 +459,7 @@ class _ChatScreenState extends State<ChatScreen> {
               decoration: BoxDecoration(
                 color: isMe
                     ? AppTheme.violetPrimary
-                    : AppTheme.slate800.withOpacity(0.6),
+                    : receivedBubbleBg,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
@@ -446,13 +469,15 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               child: Text(
                 message.content,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: TextStyle(
+                    color: isMe ? Colors.white : receivedTextColor,
+                    fontSize: 15),
               ),
             ),
             const SizedBox(height: 3),
             Text(
               time,
-              style: const TextStyle(color: Colors.grey, fontSize: 10),
+              style: TextStyle(color: timeColor, fontSize: 10),
             ),
           ],
         ),
@@ -461,11 +486,17 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final barBg = isDark ? const Color(0xFF0F0F10) : Colors.white;
+    final inputBg = isDark ? const Color(0xFF2A2A2D) : AppTheme.slate100;
+    final inputTextColor = Theme.of(context).colorScheme.onSurface;
+    final borderColor = isDark ? Colors.white.withOpacity(0.05) : AppTheme.slate200;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F10),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+        color: barBg,
+        border: Border(top: BorderSide(color: borderColor)),
       ),
       child: SafeArea(
         child: Row(
@@ -477,21 +508,22 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2D),
+                  color: inputBg,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: TextField(
                   controller: _textController,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: inputTextColor, fontSize: 16),
                   textCapitalization: TextCapitalization.sentences,
                   onSubmitted: (_) => _sendMessage(),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Message...',
-                    hintStyle: TextStyle(color: Colors.grey),
+                    hintStyle: const TextStyle(color: Colors.grey),
                     border: InputBorder.none,
+                    filled: false,
                     isDense: true,
                     contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   ),
                 ),
               ),

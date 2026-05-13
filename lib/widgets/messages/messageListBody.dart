@@ -45,6 +45,11 @@ class _MessageListBodyState extends State<MessageListBody> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final searchBg = isDark ? AppTheme.slate800.withOpacity(0.5) : AppTheme.slate100;
+    final hintColor = isDark ? Colors.grey : AppTheme.slate400;
+
     return Consumer<ConversationProvider>(
       builder: (context, provider, _) {
         return Column(
@@ -56,12 +61,12 @@ class _MessageListBodyState extends State<MessageListBody> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Messages',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: textColor,
                     ),
                   ),
                   if (provider.isLoading)
@@ -75,7 +80,7 @@ class _MessageListBodyState extends State<MessageListBody> {
                     )
                   else
                     IconButton(
-                      icon: const Icon(Icons.edit_square, color: Colors.white),
+                      icon: Icon(Icons.edit_square, color: textColor),
                       onPressed: () {},
                     ),
                 ],
@@ -87,18 +92,19 @@ class _MessageListBodyState extends State<MessageListBody> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.slate800.withOpacity(0.5),
+                  color: searchBg,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const TextField(
-                  style: TextStyle(color: Colors.white),
+                child: TextField(
+                  style: TextStyle(color: textColor),
                   decoration: InputDecoration(
                     hintText: 'Search',
-                    hintStyle: TextStyle(color: Colors.grey),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                    hintStyle: TextStyle(color: hintColor),
+                    prefixIcon: Icon(Icons.search, color: hintColor),
                     border: InputBorder.none,
+                    filled: false,
                     contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
               ),
@@ -157,6 +163,12 @@ class _MessageListBodyState extends State<MessageListBody> {
   }
 
   Widget _buildTile(BuildContext context, ConversationListItem item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final subtitleUnread = isDark ? Colors.white70 : AppTheme.slate700;
+    final subtitleRead = isDark ? Colors.grey : AppTheme.slate500;
+    final timeColor = isDark ? Colors.grey : AppTheme.slate500;
+
     final lastMsgText = item.lastMessagePreview != null
         ? (item.isLastMessageByMe
             ? 'You: ${item.lastMessagePreview}'
@@ -173,8 +185,8 @@ class _MessageListBodyState extends State<MessageListBody> {
       leading: _buildAvatar(item),
       title: Text(
         item.name,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: textColor,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -184,8 +196,8 @@ class _MessageListBodyState extends State<MessageListBody> {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: item.hasConversation && !item.isLastMessageByMe
-              ? Colors.white70
-              : Colors.grey,
+              ? subtitleUnread
+              : subtitleRead,
           fontWeight: item.hasConversation && !item.isLastMessageByMe
               ? FontWeight.w500
               : FontWeight.normal,
@@ -194,13 +206,18 @@ class _MessageListBodyState extends State<MessageListBody> {
       trailing: timeText.isNotEmpty
           ? Text(
               timeText,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: timeColor, fontSize: 12),
             )
           : null,
     );
   }
 
   Widget _buildAvatar(ConversationListItem item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final avatarBg = isDark ? AppTheme.slate800 : AppTheme.slate200;
+    final avatarTextColor = isDark ? Colors.white : AppTheme.slate700;
+    final dotBorderColor = isDark ? const Color(0xFF0F0F10) : Colors.white;
+
     return SizedBox(
       width: 56,
       height: 56,
@@ -208,15 +225,15 @@ class _MessageListBodyState extends State<MessageListBody> {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: AppTheme.slate800,
+            backgroundColor: avatarBg,
             backgroundImage: item.avatarUrl != null
                 ? NetworkImage(item.avatarUrl!)
                 : null,
             child: item.avatarUrl == null
                 ? Text(
                     item.name.isNotEmpty ? item.name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: avatarTextColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 18),
                   )
@@ -233,7 +250,7 @@ class _MessageListBodyState extends State<MessageListBody> {
                 decoration: BoxDecoration(
                   color: AppTheme.violetPrimary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0F0F10), width: 2),
+                  border: Border.all(color: dotBorderColor, width: 2),
                 ),
               ),
             ),

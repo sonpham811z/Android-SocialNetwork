@@ -24,6 +24,19 @@ class PostProvider with ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get error => _error;
 
+  /// Reset all cached state — call on logout / account switch.
+  void clear() {
+    _feedPosts.clear();
+    _myPosts.clear();
+    _feedPostsTotalCount = 0;
+    _myPostsTotalCount = 0;
+    _isLoadingFeed = false;
+    _isLoadingMyPosts = false;
+    _isSubmitting = false;
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> loadFeed({bool forceRefresh = false}) async {
     if (_isLoadingFeed) {
       return;

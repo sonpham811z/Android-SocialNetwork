@@ -26,11 +26,18 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   bool _showCreateModal = false;
   String? _expandedPostId;
-  int _currentTabIndex = 0; 
+  int _currentTabIndex = 0;
+
+  // Scroll-aware bottom nav
+  final ScrollController _feedScrollController = ScrollController();
+  bool _isDockVisible = true;
+  double _lastScrollOffset = 0;
+  static const double _scrollThreshold = 15.0;
 
   @override
   void initState() {
     super.initState();
+    _feedScrollController.addListener(_onFeedScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final authProvider = context.read<AuthProvider>();
@@ -50,6 +57,34 @@ class _FeedScreenState extends State<FeedScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _feedScrollController.removeListener(_onFeedScroll);
+    _feedScrollController.dispose();
+    super.dispose();
+  }
+
+  void _onFeedScroll() {
+    final currentOffset = _feedScrollController.offset;
+    final delta = currentOffset - _lastScrollOffset;
+
+    // Only toggle when scroll exceeds threshold
+    if (delta > _scrollThreshold && _isDockVisible) {
+      // Scrolling DOWN — hide dock
+      setState(() => _isDockVisible = false);
+    } else if (delta < -_scrollThreshold && !_isDockVisible) {
+      // Scrolling UP — show dock
+      setState(() => _isDockVisible = true);
+    }
+
+    // At the very top — always show
+    if (currentOffset <= 0 && !_isDockVisible) {
+      setState(() => _isDockVisible = true);
+    }
+
+    _lastScrollOffset = currentOffset;
+  }
+
   void _toggleCreateModal() {
     setState(() => _showCreateModal = !_showCreateModal);
   }
@@ -60,7 +95,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _handleTabChange(int index) {
     setState(() {
-      _currentTabIndex = index; 
+      _currentTabIndex = index;
+      // Show dock when switching tabs
+      _isDockVisible = true;
     });
   }
 
@@ -193,10 +230,11 @@ class _FeedScreenState extends State<FeedScreen> {
                     FeedHeader(onCreatePost: _toggleCreateModal),
                     Expanded(
                       child: SingleChildScrollView(
+                        controller: _feedScrollController,
                         child: Center(
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 1100),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+                            padding: const EdgeInsets.only(left: 16, right: 16, top: 32, bottom: 100),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -300,6 +338,7 @@ class _FeedScreenState extends State<FeedScreen> {
               activeIndex: _currentTabIndex,
               onTabSelected: _handleTabChange,
               avatarUrl: currentAvatar,
+              isVisible: _isDockVisible,
             ),
 
           if (_showCreateModal)

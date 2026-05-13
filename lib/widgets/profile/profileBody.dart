@@ -24,6 +24,7 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
   late TabController _tabController;
   String? _autoLoadedPostsForOwnerId;
   String? _autoLoadedSummaryForOwnerId;
+  String? _lastAuthUserId;
 
   @override
   void initState() {
@@ -39,9 +40,30 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
       if (!mounted) {
         return;
       }
+      _lastAuthUserId = context.read<AuthProvider>().user?.id;
       context.read<UserProfileProvider>().loadMyProfile();
     });
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentUserId = context.watch<AuthProvider>().user?.id;
+    if (currentUserId != null &&
+        _lastAuthUserId != null &&
+        currentUserId != _lastAuthUserId) {
+      // User changed (account switch) — force reload everything
+      _lastAuthUserId = currentUserId;
+      _autoLoadedPostsForOwnerId = null;
+      _autoLoadedSummaryForOwnerId = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<UserProfileProvider>().loadMyProfile();
+      });
+    }
+    _lastAuthUserId = currentUserId;
+  }
+
 
   @override
   void dispose() {

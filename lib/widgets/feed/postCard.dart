@@ -32,7 +32,7 @@ class PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF18181B) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF111214) : Colors.white;
     final primaryText = isDark ? Colors.white : AppTheme.slate900;
 
     return Container(
@@ -40,14 +40,21 @@ class PostCard extends StatelessWidget {
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.slate200,
+          color: isDark ? const Color(0xFF27272A) : AppTheme.slate200,
         ),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            )
+          else
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 24,
+              offset: const Offset(0, 6),
+            ),
         ],
       ),
       child: Column(
@@ -90,7 +97,7 @@ class PostCard extends StatelessWidget {
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       height: 200,
-                      color: isDark ? const Color(0xFF202024) : AppTheme.slate100,
+                      color: isDark ? const Color(0xFF151517) : AppTheme.slate100,
                       child: Center(
                         child: Icon(
                           Icons.broken_image,
@@ -162,7 +169,7 @@ class PostCard extends StatelessWidget {
           if (canManage)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_horiz),
-              color: isDark ? const Color(0xFF202024) : Colors.white,
+              color: isDark ? const Color(0xFF151517) : Colors.white,
               onSelected: (value) {
                 if (value == 'edit') {
                   onEditPost?.call();
@@ -258,7 +265,7 @@ class PostCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.black.withOpacity(0.2) : AppTheme.slate100.withOpacity(0.5),
+        color: isDark ? Colors.black.withOpacity(0.25) : AppTheme.slate100.withOpacity(0.5),
         border: Border(
           top: BorderSide(
             color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.slate200,
@@ -304,7 +311,7 @@ class PostCard extends StatelessWidget {
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2A2A2D) : Colors.white,
+                    color: isDark ? const Color(0xFF1E1E22) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isDark ? Colors.transparent : AppTheme.slate300,
@@ -362,7 +369,7 @@ class PostCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2A2A2D) : Colors.white,
+                    color: isDark ? const Color(0xFF1E1E22) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isDark ? Colors.transparent : AppTheme.slate200,

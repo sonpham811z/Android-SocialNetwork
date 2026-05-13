@@ -94,6 +94,15 @@ class _CreatePostModalState extends State<CreatePostModal> {
     final displayName = profile?.displayName ?? auth.user?.fullName ?? 'Bạn';
     final avatarUrl = profile?.avatar ?? '';
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final modalBg = isDark ? const Color(0xFF18181B) : Colors.white;
+    final borderColor = isDark ? AppTheme.slate800 : AppTheme.slate200;
+    final textColor = colorScheme.onSurface;
+    final subtleTextColor = isDark ? AppTheme.slate400 : AppTheme.slate500;
+    final hintColor = isDark ? AppTheme.slate600 : AppTheme.slate400;
+    final chipBg = isDark ? AppTheme.slate800 : AppTheme.slate100;
+
     return GestureDetector(
       onTap: widget.onClose,
       child: Container(
@@ -105,9 +114,9 @@ class _CreatePostModalState extends State<CreatePostModal> {
               margin: const EdgeInsets.all(16),
               constraints: const BoxConstraints(maxWidth: 512),
               decoration: BoxDecoration(
-                color: const Color(0xFF18181B),
+                color: modalBg,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppTheme.slate800),
+                border: Border.all(color: borderColor),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.5),
@@ -120,7 +129,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Header
-                  _buildHeader(),
+                  _buildHeader(textColor: textColor, subtleTextColor: subtleTextColor, borderColor: borderColor),
 
                   // Content
                   Flexible(
@@ -129,17 +138,17 @@ class _CreatePostModalState extends State<CreatePostModal> {
                         padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            _buildUserInfo(displayName, avatarUrl),
+                            _buildUserInfo(displayName, avatarUrl, textColor: textColor, subtleTextColor: subtleTextColor, chipBg: chipBg),
                             const SizedBox(height: 16),
-                            _buildTextInput(),
+                            _buildTextInput(textColor: textColor, hintColor: hintColor),
                             const SizedBox(height: 16),
                             if (_pickedImagePath != null || _pickedAudioPath != null) ...[
-                              _buildPickedMediaPreview(),
+                              _buildPickedMediaPreview(isDark: isDark),
                               const SizedBox(height: 12),
                             ],
-                            _buildAttachmentOptions(),
+                            _buildAttachmentOptions(subtleTextColor: subtleTextColor, borderColor: borderColor),
                             const SizedBox(height: 20),
-                            _buildPostButton(postProvider.isSubmitting),
+                            _buildPostButton(postProvider.isSubmitting, isDark: isDark),
                           ],
                         ),
                       ),
@@ -154,22 +163,26 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({
+    required Color textColor,
+    required Color subtleTextColor,
+    required Color borderColor,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppTheme.slate800),
+          bottom: BorderSide(color: borderColor),
         ),
       ),
       child: Row(
         children: [
-          const Text(
+          Text(
             'Tạo bài viết',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: textColor,
             ),
           ),
           const Spacer(),
@@ -178,13 +191,13 @@ class _CreatePostModalState extends State<CreatePostModal> {
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppTheme.slate800.withOpacity(0.5),
+                color: borderColor.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.close,
                 size: 20,
-                color: AppTheme.slate400,
+                color: subtleTextColor,
               ),
             ),
           ),
@@ -193,7 +206,13 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildUserInfo(String displayName, String avatarUrl) {
+  Widget _buildUserInfo(
+    String displayName,
+    String avatarUrl, {
+    required Color textColor,
+    required Color subtleTextColor,
+    required Color chipBg,
+  }) {
     return Row(
       children: [
         // Avatar
@@ -202,7 +221,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
           height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: AppTheme.slate800),
+            border: Border.all(color: chipBg),
           ),
           child: ClipOval(
             child: Image.network(
@@ -210,8 +229,8 @@ class _CreatePostModalState extends State<CreatePostModal> {
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  color: AppTheme.slate800,
-                  child: const Icon(Icons.person, color: Colors.white),
+                  color: chipBg,
+                  child: Icon(Icons.person, color: textColor),
                 );
               },
             ),
@@ -226,17 +245,17 @@ class _CreatePostModalState extends State<CreatePostModal> {
           children: [
             Text(
               displayName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppTheme.slate800,
+                color: chipBg,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Row(
@@ -245,21 +264,21 @@ class _CreatePostModalState extends State<CreatePostModal> {
                   Icon(
                     Icons.public,
                     size: 10,
-                    color: AppTheme.slate400,
+                    color: subtleTextColor,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Công khai',
                     style: TextStyle(
                       fontSize: 10,
-                      color: AppTheme.slate400,
+                      color: subtleTextColor,
                     ),
                   ),
                   const SizedBox(width: 2),
                   Icon(
                     Icons.unfold_more,
                     size: 10,
-                    color: AppTheme.slate400,
+                    color: subtleTextColor,
                   ),
                 ],
               ),
@@ -270,32 +289,39 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildTextInput() {
+  Widget _buildTextInput({
+    required Color textColor,
+    required Color hintColor,
+  }) {
     return TextField(
       controller: _textController,
       maxLines: null,
       minLines: 5,
       autofocus: true,
-      style: const TextStyle(
-        color: Colors.white,
+      style: TextStyle(
+        color: textColor,
         fontSize: 18,
       ),
       decoration: InputDecoration(
         hintText: 'Bạn đang nghĩ gì thế?',
         hintStyle: TextStyle(
-          color: AppTheme.slate600,
+          color: hintColor,
           fontSize: 18,
         ),
         border: InputBorder.none,
+        filled: false,
       ),
     );
   }
 
-  Widget _buildAttachmentOptions() {
+  Widget _buildAttachmentOptions({
+    required Color subtleTextColor,
+    required Color borderColor,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: AppTheme.slate800),
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -305,7 +331,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: AppTheme.slate300,
+              color: subtleTextColor,
             ),
           ),
           const Spacer(),
@@ -319,26 +345,30 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildPickedMediaPreview() {
+  Widget _buildPickedMediaPreview({required bool isDark}) {
     final label = _pickedImagePath != null ? 'Đã chọn ảnh' : 'Đã chọn audio';
     final icon = _pickedImagePath != null ? Icons.image_outlined : Icons.audio_file_outlined;
+    final previewBg = isDark ? AppTheme.slate800.withOpacity(0.6) : AppTheme.slate100;
+    final previewBorder = isDark ? AppTheme.slate700 : AppTheme.slate200;
+    final previewIconColor = isDark ? Colors.white70 : AppTheme.slate500;
+    final previewTextColor = isDark ? Colors.white : AppTheme.slate900;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.slate800.withOpacity(0.6),
+        color: previewBg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.slate700),
+        border: Border.all(color: previewBorder),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white70, size: 18),
+          Icon(icon, color: previewIconColor, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: previewTextColor, fontSize: 13),
             ),
           ),
           IconButton(
@@ -348,7 +378,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
                 _pickedAudioPath = null;
               });
             },
-            icon: const Icon(Icons.close, size: 16, color: Colors.white70),
+            icon: Icon(Icons.close, size: 16, color: previewIconColor),
           ),
         ],
       ),
@@ -374,24 +404,27 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildPostButton(bool isSubmitting) {
+  Widget _buildPostButton(bool isSubmitting, {required bool isDark}) {
+    final btnBg = isDark ? Colors.white : AppTheme.violetPrimary;
+    final btnFg = isDark ? Colors.black : Colors.white;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: isSubmitting ? null : _submitPost,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: btnBg,
+          foregroundColor: btnFg,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: isSubmitting
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(strokeWidth: 2, color: btnFg),
               )
             : const Text(
                 'Đăng bài',

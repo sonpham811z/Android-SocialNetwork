@@ -37,6 +37,22 @@ class FriendProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reset all cached state — call on logout / account switch.
+  void clear() {
+    _friends = <FriendshipModel>[];
+    _receivedRequests = <FriendRequestModel>[];
+    _sentRequests = <FriendRequestModel>[];
+    _followers = <FollowModel>[];
+    _following = <FollowModel>[];
+    _blockedUsers = <BlockModel>[];
+    _socialSummary = null;
+    _friendIds = <String>[];
+    _isLoading = false;
+    _isActionLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> _runLoad(Future<void> Function() operation) async {
     _isLoading = true;
     _error = null;
