@@ -105,7 +105,7 @@ class UserProfileService {
         );
 
         if (parsed.success && parsed.data != null) {
-          return parsed.data;
+return parsed.data;
         }
 
         throw Exception(parsed.message.isEmpty
@@ -205,7 +205,7 @@ class UserProfileService {
       });
 
       final response = await _apiClient.dio.post(
-        '$_userProfileBaseUrl/upload-profile-picture',
+'$_userProfileBaseUrl/upload-profile-picture',
         data: formData,
       );
 
