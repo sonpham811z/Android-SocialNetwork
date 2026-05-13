@@ -1,10 +1,10 @@
 class Environment {
-  static const String baseUrl = 'http://10.0.2.2:5210/api';
-  static const String userServiceBaseUrl = 'http://10.0.2.2:5220/api';
-  static const String friendServiceBaseUrl = 'http://10.0.2.2:5176/api';
-  static const String postServiceBaseUrl = 'http://10.0.2.2:5175/api';
-  static const String messageServiceBaseUrl = 'http://10.0.2.2:5177/api';
-  static const String messageHubUrl = 'http://10.0.2.2:5177/hubs/message';
+  static const String baseUrl = 'https://sonpham-socialnet-api.duckdns.org/identity/api';
+  static const String userServiceBaseUrl = 'https://sonpham-socialnet-api.duckdns.org/user/api';
+  static const String friendServiceBaseUrl = 'https://sonpham-socialnet-api.duckdns.org/friend/api';
+  static const String postServiceBaseUrl = 'https://sonpham-socialnet-api.duckdns.org/post/api';
+  static const String messageServiceBaseUrl = 'https://sonpham-socialnet-api.duckdns.org/message/api';
+  static const String messageHubUrl = 'https://sonpham-socialnet-api.duckdns.org/message/hubs/message';
 
   static const String googleClientId = '69350263890-k8a18rev98t4g3mjs1njnmq4qbjt3hsc.apps.googleusercontent.com';
 

@@ -41,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _nextCursor;
   bool _isLoadingMore = false;
   String? _error;
+  bool _isNotFriend = false;
 
   StreamSubscription<MessageModel>? _messageSub;
 
@@ -91,7 +92,15 @@ class _ChatScreenState extends State<ChatScreen> {
           .where((msg) => msg.conversationId == _conversationId)
           .listen(_onIncomingMessage);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        final notFriend = msg.toLowerCase().contains('non-friend') ||
+            msg.toLowerCase().contains('not a friend');
+        setState(() {
+          _isNotFriend = notFriend;
+          _error = notFriend ? null : msg;
+        });
+      }
     } finally {
       if (mounted) setState(() => _isInitializing = false);
     }
@@ -184,7 +193,7 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(child: _buildMessageList()),
-          _buildInputBar(),
+          if (!_isNotFriend) _buildInputBar(),
         ],
       ),
     );
@@ -244,6 +253,69 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_isInitializing) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.violetPrimary),
+      );
+    }
+
+    if (_isNotFriend) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 48,
+                backgroundColor: AppTheme.slate800,
+                backgroundImage: widget.friendAvatarUrl != null
+                    ? NetworkImage(widget.friendAvatarUrl!)
+                    : null,
+                child: widget.friendAvatarUrl == null
+                    ? Text(
+                        widget.friendName.isNotEmpty
+                            ? widget.friendName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold),
+                      )
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                widget.friendName,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.slate800.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline,
+                    color: Colors.grey, size: 32),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Chỉ có thể nhắn tin với bạn bè.',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Hãy kết bạn để bắt đầu trò chuyện.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

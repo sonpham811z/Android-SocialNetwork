@@ -26,10 +26,19 @@ class ConversationProvider with ChangeNotifier {
   String? get error => _error;
 
   Future<void> initialize(String currentUserId) async {
-    if (_isInitialized) return;
+    // Same user already initialized — skip
+    if (_isInitialized && _currentUserId == currentUserId) return;
+
+    // Different user (e.g. after logout/login) — reset state first
+    await _messageSubscription?.cancel();
+    _messageSubscription = null;
+    _isInitialized = false;
+    _conversations = [];
+    _friends = [];
+    _error = null;
+
     _currentUserId = currentUserId;
     _isLoading = true;
-    _error = null;
     notifyListeners();
 
     try {
@@ -92,6 +101,9 @@ class ConversationProvider with ChangeNotifier {
 
     // Map friendId → FriendshipModel for quick lookup
     final friendMap = {for (final f in _friends) f.friend.id: f};
+    
+    
+
 
     // Sort conversations newest-first
     final sorted = List.of(_conversations)
@@ -112,7 +124,8 @@ class ConversationProvider with ChangeNotifier {
         avatarUrl: friend?.friend.avatarUrl,
         lastMessagePreview: conv.lastMessage?.content,
         lastMessageTime: conv.lastMessage?.timestamp ?? conv.updatedAt,
-        isLastMessageByMe: conv.lastMessage?.senderId == uid,
+        isLastMessageByMe: uid.isNotEmpty &&
+            (conv.lastMessage?.senderId ?? '').toLowerCase() == uid.toLowerCase(),
       ));
     }
 

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../config/environment.dart';
 import '../models/chatModel.dart';
 import '../utils/json_helpers.dart';
@@ -7,6 +8,9 @@ class MessageService {
   final ApiClient _apiClient = ApiClient();
 
   Exception _mapError(Object e) {
+    if (e is DioException) {
+      return Exception(ApiClient.buildReadableErrorMessage(e));
+    }
     if (e is Exception) return e;
     return Exception(e.toString());
   }

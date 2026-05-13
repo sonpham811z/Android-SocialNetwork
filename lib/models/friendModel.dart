@@ -81,7 +81,7 @@ class UserLite {
 
   factory UserLite.fromJson(Map<String, dynamic> json) {
     return UserLite(
-      id: asText(json['id'] ?? json['Id']),
+      id: asText(json['userId'] ?? json['UserId'] ?? json['id'] ?? json['Id']),
       name: asText(
         json['name'] ?? json['Name'] ?? json['fullName'] ?? json['FullName'],
       ),
@@ -113,7 +113,7 @@ class FriendshipModel {
 
   factory FriendshipModel.fromJson(Map<String, dynamic> json) {
     return FriendshipModel(
-      id: asText(json['id'] ?? json['Id']),
+      id: asText(json['userid'] ?? json['Id']),
       friend: UserLite.fromJson(
           asJsonMap(json['friend'] ?? json['Friend']) ?? <String, dynamic>{}),
       createdAt: DateTime.tryParse(

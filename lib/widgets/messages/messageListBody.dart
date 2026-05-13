@@ -24,7 +24,7 @@ class _MessageListBodyState extends State<MessageListBody> {
   void _initIfNeeded() {
     final auth = context.read<AuthProvider>();
     final conv = context.read<ConversationProvider>();
-    if (!conv.isInitialized && auth.user != null) {
+    if (auth.user != null) {
       conv.initialize(auth.user!.id);
     }
   }
@@ -160,7 +160,7 @@ class _MessageListBodyState extends State<MessageListBody> {
     final lastMsgText = item.lastMessagePreview != null
         ? (item.isLastMessageByMe
             ? 'You: ${item.lastMessagePreview}'
-            : item.lastMessagePreview!)
+            : '${item.name}: ${item.lastMessagePreview}')
         : 'Tap to start chatting';
 
     final timeText = item.lastMessageTime != null
