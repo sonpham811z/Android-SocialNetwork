@@ -25,7 +25,6 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   bool _showCreateModal = false;
-  String? _expandedPostId;
   int _currentTabIndex = 0;
 
   // Scroll-aware bottom nav
@@ -87,10 +86,6 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _toggleCreateModal() {
     setState(() => _showCreateModal = !_showCreateModal);
-  }
-
-  void _toggleComments(String postId) {
-    setState(() => _expandedPostId = _expandedPostId == postId ? null : postId);
   }
 
   void _handleTabChange(int index) {
@@ -296,16 +291,11 @@ class _FeedScreenState extends State<FeedScreen> {
                                               padding: const EdgeInsets.only(bottom: 32),
                                               child: PostCard(
                                                 post: post,
-                                                isExpanded: _expandedPostId == post.id,
-                                                onToggleComments: () => _toggleComments(post.id),
                                                 currentUserAvatar: currentAvatar,
                                                 canManage: post.userId == currentUserId,
                                                 onToggleLike: () => context.read<PostProvider>().toggleLike(post),
                                                 onEditPost: () => _showEditPostDialog(postProvider, post),
                                                 onDeletePost: () => _confirmDeletePost(postProvider, post),
-                                                onLoadComments: () => context.read<PostProvider>().loadComments(post.id),
-                                                onSubmitComment: (content) =>
-                                                    context.read<PostProvider>().createComment(post.id, content),
                                               ),
                                             ),
                                           ),

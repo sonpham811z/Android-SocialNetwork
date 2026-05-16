@@ -529,7 +529,6 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               child: PostCard(
                 post: myPosts[index],
-                onToggleComments: () {},
                 currentUserAvatar: profile.profilePictureUrl,
               ),
             );

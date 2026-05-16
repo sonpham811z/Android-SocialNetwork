@@ -52,23 +52,74 @@ class UserProfile {
 
 class Comment {
   final String id;
+  final String postId;
+  final String userId;
   final UserProfile user;
   final String content;
+  final String? parentCommentId;
   final String timestamp;
+  final DateTime? createdAtRaw;
+  final DateTime? updatedAt;
+  // Like state — managed locally (backend chưa có API like comment)
+  final int likesCount;
+  final bool isLikedByCurrentUser;
 
   Comment({
     required this.id,
+    this.postId = '',
+    this.userId = '',
     required this.user,
     required this.content,
+    this.parentCommentId,
     required this.timestamp,
+    this.createdAtRaw,
+    this.updatedAt,
+    this.likesCount = 0,
+    this.isLikedByCurrentUser = false,
   });
 
   factory Comment.fromApi(Map<String, dynamic> json) {
+    final createdAt = DateTime.tryParse(asText(json['createdAt']));
+    final updatedAt = json['updatedAt'] != null
+        ? DateTime.tryParse(asText(json['updatedAt']))
+        : null;
+    final parentId = asText(json['parentCommentId']);
+
     return Comment(
       id: asText(json['id']),
+      postId: asText(json['postId']),
+      userId: asText(json['userId']),
       user: UserProfile.fromApi(asJsonMap(json['user']) ?? <String, dynamic>{}),
       content: asText(json['content']),
+      parentCommentId: parentId.isEmpty ? null : parentId,
       timestamp: Post.formatTimestamp(asText(json['createdAt'])),
+      createdAtRaw: createdAt,
+      updatedAt: updatedAt,
+      likesCount: 0,
+      isLikedByCurrentUser: false,
+    );
+  }
+
+  Comment copyWith({
+    String? content,
+    String? parentCommentId,
+    String? timestamp,
+    DateTime? updatedAt,
+    int? likesCount,
+    bool? isLikedByCurrentUser,
+  }) {
+    return Comment(
+      id: id,
+      postId: postId,
+      userId: userId,
+      user: user,
+      content: content ?? this.content,
+      parentCommentId: parentCommentId ?? this.parentCommentId,
+      timestamp: timestamp ?? this.timestamp,
+      createdAtRaw: createdAtRaw,
+      updatedAt: updatedAt ?? this.updatedAt,
+      likesCount: likesCount ?? this.likesCount,
+      isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
     );
   }
 }

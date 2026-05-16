@@ -197,7 +197,10 @@ class PostProvider with ChangeNotifier {
   Future<void> loadComments(String postId) async {
     try {
       final comments = await _service.getComments(postId);
-      _updatePostById(postId, (post) => post.copyWith(commentsList: comments, commentsCount: comments.length));
+      _updatePostById(postId, (post) => post.copyWith(
+        commentsList: comments,
+        commentsCount: comments.length,
+      ));
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -205,14 +208,18 @@ class PostProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> createComment(String postId, String content) async {
+  Future<bool> createComment(String postId, String content, {String? parentCommentId}) async {
     final normalized = content.trim();
     if (normalized.isEmpty) {
       return false;
     }
 
     try {
-      final created = await _service.createComment(postId, normalized);
+      final created = await _service.createComment(
+        postId,
+        normalized,
+        parentCommentId: parentCommentId,
+      );
       if (created != null) {
         _updatePostById(postId, (post) {
           final nextComments = [...(post.commentsList ?? <Comment>[]), created];
@@ -227,6 +234,71 @@ class PostProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  Future<bool> updateComment(String postId, String commentId, String content) async {
+    final normalized = content.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+
+    try {
+      final updated = await _service.updateComment(commentId, normalized);
+      if (updated != null) {
+        _updatePostById(postId, (post) {
+          final nextComments = (post.commentsList ?? <Comment>[]).map((c) {
+            return c.id == commentId ? updated : c;
+          }).toList();
+          return post.copyWith(commentsList: nextComments);
+        });
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteComment(String postId, String commentId) async {
+    try {
+      final success = await _service.deleteComment(commentId);
+      if (success) {
+        _updatePostById(postId, (post) {
+          final nextComments = (post.commentsList ?? <Comment>[])
+              .where((c) => c.id != commentId && c.parentCommentId != commentId)
+              .toList();
+          return post.copyWith(commentsList: nextComments, commentsCount: nextComments.length);
+        });
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Toggle like trên comment — xử lý local (backend chưa có API).
+  void toggleCommentLike(String postId, String commentId) {
+    _updatePostById(postId, (post) {
+      final nextComments = (post.commentsList ?? <Comment>[]).map((c) {
+        if (c.id != commentId) return c;
+        final wasLiked = c.isLikedByCurrentUser;
+        return c.copyWith(
+          isLikedByCurrentUser: !wasLiked,
+          likesCount: wasLiked
+              ? (c.likesCount - 1).clamp(0, 1 << 31)
+              : c.likesCount + 1,
+        );
+      }).toList();
+      return post.copyWith(commentsList: nextComments);
+    });
+    notifyListeners();
   }
 
   Future<bool> updatePost({

@@ -180,10 +180,35 @@ class PostService {
     }
   }
 
-  Future<Comment?> createComment(String postId, String content) async {
+  Future<Comment?> createComment(String postId, String content, {String? parentCommentId}) async {
     try {
+      final data = <String, dynamic>{'content': content};
+      if (parentCommentId != null && parentCommentId.isNotEmpty) {
+        data['parentCommentId'] = parentCommentId;
+      }
+
       final response = await _apiClient.dio.post(
         '$_postBaseUrl/$postId/comments',
+        data: data,
+      );
+
+      final payload = _readData(response.data);
+      if (payload is Map<String, dynamic>) {
+        return Comment.fromApi(payload);
+      }
+      if (payload is Map) {
+        return Comment.fromApi(payload.cast<String, dynamic>());
+      }
+      return null;
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<Comment?> updateComment(String commentId, String content) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '$_postBaseUrl/comments/$commentId',
         data: {'content': content},
       );
 
@@ -195,6 +220,15 @@ class PostService {
         return Comment.fromApi(payload.cast<String, dynamic>());
       }
       return null;
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> deleteComment(String commentId) async {
+    try {
+      final response = await _apiClient.dio.delete('$_postBaseUrl/comments/$commentId');
+      return _extractSuccess(response.data);
     } on DioException catch (e) {
       throw Exception(ApiClient.buildReadableErrorMessage(e));
     }

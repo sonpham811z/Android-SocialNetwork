@@ -1,32 +1,25 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
-import 'voicePlayer.dart'; 
+import '../comment/commentBottomSheet.dart';
+import 'voicePlayer.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
-  final bool isExpanded; // Trạng thái đóng mở comment
-  final VoidCallback onToggleComments;
   final String? currentUserAvatar;
   final bool canManage;
   final VoidCallback? onToggleLike;
   final VoidCallback? onEditPost;
   final VoidCallback? onDeletePost;
-  final Future<void> Function()? onLoadComments;
-  final Future<bool> Function(String content)? onSubmitComment;
 
   const PostCard({
     super.key,
     required this.post,
-    this.isExpanded = false,
-    required this.onToggleComments,
     this.currentUserAvatar,
     this.canManage = false,
     this.onToggleLike,
     this.onEditPost,
     this.onDeletePost,
-    this.onLoadComments,
-    this.onSubmitComment,
   });
 
   @override
@@ -112,10 +105,6 @@ class PostCard extends StatelessWidget {
 
           // 4. Footer: Like, Comment, Share
           _buildPostFooter(context, isDark),
-
-          // 5. [FIX] KHU VỰC COMMENT (Chỉ hiện khi isExpanded == true)
-          if (isExpanded) 
-            _buildCommentsSection(context, isDark),
         ],
       ),
     );
@@ -232,12 +221,8 @@ class PostCard extends StatelessWidget {
                 icon: Icons.chat_bubble_outline,
                 label: '${post.commentsCount}',
                 color: isDark ? Colors.white : AppTheme.slate900,
-                onTap: () async {
-                  final willExpand = !isExpanded;
-                  onToggleComments();
-                  if (willExpand) {
-                    await onLoadComments?.call();
-                  }
+                onTap: () {
+                  CommentBottomSheet.show(context, post);
                 },
               ),
               const SizedBox(width: 24),
@@ -258,174 +243,7 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  // [NEW] Widget hiển thị danh sách comment và ô nhập liệu
-  Widget _buildCommentsSection(BuildContext context, bool isDark) {
-    final comments = post.commentsList ?? [];
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.black.withOpacity(0.25) : AppTheme.slate100.withOpacity(0.5),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.slate200,
-            width: 1,
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Danh sách comment
-          if (comments.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                "Chưa có bình luận nào. Hãy là người đầu tiên!",
-                style: TextStyle(color: AppTheme.slate500, fontSize: 13),
-              ),
-            )
-          else
-            ...comments.map((comment) => _buildSingleComment(context, comment, isDark)),
-
-          const SizedBox(height: 12),
-
-          // Ô nhập comment
-          Row(
-            children: [
-              // Avatar người dùng hiện tại (Lấy tạm user của post làm demo)
-              CircleAvatar(
-                radius: 16,
-                backgroundImage: (currentUserAvatar ?? '').trim().isEmpty
-                    ? null
-                    : NetworkImage(currentUserAvatar!.trim()),
-                child: (currentUserAvatar ?? '').trim().isEmpty
-                    ? Icon(
-                        Icons.person,
-                        size: 16,
-                        color: isDark ? Colors.white70 : AppTheme.slate600,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E22) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isDark ? Colors.transparent : AppTheme.slate300,
-                    ),
-                  ),
-                  child: TextField(
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (value) async {
-                      final normalized = value.trim();
-                      if (normalized.isEmpty) {
-                        return;
-                      }
-                      await onSubmitComment?.call(normalized);
-                    },
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppTheme.slate900,
-                      fontSize: 14
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Viết bình luận...',
-                      hintStyle: TextStyle(
-                        color: AppTheme.slate500, 
-                        fontSize: 14
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      suffixIcon: Icon(Icons.send, size: 18, color: AppTheme.violetPrimary),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // [NEW] Widget hiển thị 1 dòng comment
-  Widget _buildSingleComment(BuildContext context, Comment comment, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundImage: NetworkImage(comment.user.avatar),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E22) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark ? Colors.transparent : AppTheme.slate200,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        comment.user.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: isDark ? Colors.white : AppTheme.slate900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        comment.content,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark ? Colors.white.withOpacity(0.9) : AppTheme.slate900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Row(
-                    children: [
-                      Text(
-                        comment.timestamp,
-                        style: TextStyle(color: AppTheme.slate500, fontSize: 11),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        'Thích',
-                        style: TextStyle(color: AppTheme.slate500, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        'Trả lời',
-                        style: TextStyle(color: AppTheme.slate500, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildInteractionButton(
     BuildContext context, {
