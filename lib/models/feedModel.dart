@@ -257,15 +257,71 @@ class Post {
 class Story {
   final String id;
   final UserProfile user;
-  final String image;
-  final bool isSeen;
+  final String? mediaUrl;
+  final String? thumbnailUrl;
+  final String mediaType; // "Image" or "Video"
+  final int viewsCount;
+  final bool isViewedByCurrentUser;
+  final bool isOwner;
+  final String createdAt;
+  final DateTime? expiresAt;
+
+  // Backward-compat getter for old code that used story.image
+  String? get image => mediaType == 'Image' ? mediaUrl : thumbnailUrl;
+  bool get isSeen => isViewedByCurrentUser;
 
   Story({
     required this.id,
     required this.user,
-    required this.image,
-    required this.isSeen,
+    this.mediaUrl,
+    this.thumbnailUrl,
+    required this.mediaType,
+    required this.viewsCount,
+    required this.isViewedByCurrentUser,
+    required this.isOwner,
+    required this.createdAt,
+    this.expiresAt,
   });
+
+  factory Story.fromApi(Map<String, dynamic> json) {
+    return Story(
+      id: asText(json['id']),
+      user: UserProfile.fromApi(asJsonMap(json['user']) ?? {}),
+      mediaUrl: asText(json['mediaUrl']).isEmpty ? null : asText(json['mediaUrl']),
+      thumbnailUrl: asText(json['thumbnailUrl']).isEmpty ? null : asText(json['thumbnailUrl']),
+      mediaType: asText(json['mediaType']).isEmpty ? 'Image' : asText(json['mediaType']),
+      viewsCount: json['viewsCount'] is int ? json['viewsCount'] : int.tryParse(json['viewsCount']?.toString() ?? '0') ?? 0,
+      isViewedByCurrentUser: json['isViewedByCurrentUser'] == true,
+      isOwner: json['isOwner'] == true,
+      createdAt: Post.formatTimestamp(asText(json['createdAt'])),
+      expiresAt: json['expiresAt'] != null ? DateTime.tryParse(asText(json['expiresAt'])) : null,
+    );
+  }
+}
+
+class StoryFeedItem {
+  final UserProfile user;
+  final List<Story> stories;
+  final bool hasUnseenStories;
+
+  StoryFeedItem({
+    required this.user,
+    required this.stories,
+    required this.hasUnseenStories,
+  });
+
+  factory StoryFeedItem.fromApi(Map<String, dynamic> json) {
+    final storiesRaw = json['stories'];
+    final stories = storiesRaw is List
+        ? storiesRaw.whereType<Map>().map((s) => Story.fromApi(s.cast<String, dynamic>())).toList()
+        : <Story>[];
+
+    return StoryFeedItem(
+      user: UserProfile.fromApi(asJsonMap(json['user']) ?? {}),
+      stories: stories,
+      hasUnseenStories: json['hasUnseenStories'] == true,
+    );
+  }
 }
 
 class FriendSuggestion {
@@ -296,8 +352,12 @@ class MockData {
         handle: '@tranthib',
         avatar: 'https://i.pravatar.cc/150?img=5',
       ),
-      image: 'https://picsum.photos/200/300?random=1',
-      isSeen: false,
+      mediaUrl: 'https://picsum.photos/400/700?random=1',
+      mediaType: 'Image',
+      viewsCount: 12,
+      isViewedByCurrentUser: false,
+      isOwner: false,
+      createdAt: '2 giờ trước',
     ),
     Story(
       id: 's2',
@@ -307,8 +367,12 @@ class MockData {
         handle: '@levanc',
         avatar: 'https://i.pravatar.cc/150?img=8',
       ),
-      image: 'https://picsum.photos/200/300?random=2',
-      isSeen: true,
+      mediaUrl: 'https://picsum.photos/400/700?random=2',
+      mediaType: 'Image',
+      viewsCount: 5,
+      isViewedByCurrentUser: true,
+      isOwner: false,
+      createdAt: '4 giờ trước',
     ),
     Story(
       id: 's3',
@@ -318,8 +382,12 @@ class MockData {
         handle: '@phamthid',
         avatar: 'https://i.pravatar.cc/150?img=10',
       ),
-      image: 'https://picsum.photos/200/300?random=3',
-      isSeen: false,
+      mediaUrl: 'https://picsum.photos/400/700?random=3',
+      mediaType: 'Image',
+      viewsCount: 20,
+      isViewedByCurrentUser: false,
+      isOwner: false,
+      createdAt: '1 giờ trước',
     ),
   ];
 
