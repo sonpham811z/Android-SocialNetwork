@@ -7,13 +7,13 @@ import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
-import '../../widgets/feed/feedHeader.dart';
 import '../../widgets/feed/statusInput.dart';
+import '../../widgets/feed/storiesSection.dart';
 import '../../widgets/feed/postCard.dart';
 import '../../widgets/feed/floatingDock.dart';
 import '../../widgets/feed/createPostModal.dart';
 import '../../widgets/messages/messageListBody.dart';
-import '../../widgets/profile/profileBody.dart'; 
+import '../../widgets/profile/profileBody.dart';
 import 'notificationScreen.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -27,7 +27,6 @@ class _FeedScreenState extends State<FeedScreen> {
   bool _showCreateModal = false;
   int _currentTabIndex = 0;
 
-  // Scroll-aware bottom nav
   final ScrollController _feedScrollController = ScrollController();
   bool _isDockVisible = true;
   double _lastScrollOffset = 0;
@@ -41,7 +40,6 @@ class _FeedScreenState extends State<FeedScreen> {
       if (!mounted) return;
       final authProvider = context.read<AuthProvider>();
       if (authProvider.isCheckingAuth) {
-        // Wait for auth check to complete before loading feed
         late final VoidCallback listener;
         listener = () {
           if (!authProvider.isCheckingAuth) {
@@ -67,16 +65,12 @@ class _FeedScreenState extends State<FeedScreen> {
     final currentOffset = _feedScrollController.offset;
     final delta = currentOffset - _lastScrollOffset;
 
-    // Only toggle when scroll exceeds threshold
     if (delta > _scrollThreshold && _isDockVisible) {
-      // Scrolling DOWN — hide dock
       setState(() => _isDockVisible = false);
     } else if (delta < -_scrollThreshold && !_isDockVisible) {
-      // Scrolling UP — show dock
       setState(() => _isDockVisible = true);
     }
 
-    // At the very top — always show
     if (currentOffset <= 0 && !_isDockVisible) {
       setState(() => _isDockVisible = true);
     }
@@ -91,7 +85,6 @@ class _FeedScreenState extends State<FeedScreen> {
   void _handleTabChange(int index) {
     setState(() {
       _currentTabIndex = index;
-      // Show dock when switching tabs
       _isDockVisible = true;
     });
   }
@@ -133,9 +126,7 @@ class _FeedScreenState extends State<FeedScreen> {
       },
     );
 
-    if (saved != true || !mounted) {
-      return;
-    }
+    if (saved != true || !mounted) return;
 
     final success = await context.read<PostProvider>().updatePost(
       postId: post.id,
@@ -144,7 +135,11 @@ class _FeedScreenState extends State<FeedScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? 'Đã cập nhật bài viết.' : (postProvider.error ?? 'Không thể cập nhật bài viết.'))),
+      SnackBar(
+        content: Text(success
+            ? 'Đã cập nhật bài viết.'
+            : (postProvider.error ?? 'Không thể cập nhật bài viết.')),
+      ),
     );
   }
 
@@ -179,20 +174,21 @@ class _FeedScreenState extends State<FeedScreen> {
       },
     );
 
-    if (confirmed != true || !mounted) {
-      return;
-    }
+    if (confirmed != true || !mounted) return;
 
     final success = await context.read<PostProvider>().deletePost(post.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? 'Đã xóa bài viết.' : (postProvider.error ?? 'Không thể xóa bài viết.'))),
+      SnackBar(
+        content: Text(success
+            ? 'Đã xóa bài viết.'
+            : (postProvider.error ?? 'Không thể xóa bài viết.')),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final postProvider = context.watch<PostProvider>();
@@ -200,15 +196,15 @@ class _FeedScreenState extends State<FeedScreen> {
     final currentAvatar = context.watch<UserProfileProvider>().profile?.avatar;
     final feedPosts = postProvider.feedPosts;
 
-    // Logic xác định trang nào hiển thị trong IndexedStack
     int getStackIndex(int tabIndex) {
-        if (tabIndex == 0) return 0; // Trang chủ (Feed)
-        if (tabIndex == 2) return 4; // NHẤN NÚT BẠN BÈ -> HIỆN TRANG INDEX 4
-        if (tabIndex == 3) return 2; // Message
-        if (tabIndex == 4) return 3; // Notification
-        if (tabIndex == 5) return 1; // Profile
-        return 0; // Mặc định
+      if (tabIndex == 0) return 0;
+      if (tabIndex == 2) return 4;
+      if (tabIndex == 3) return 2;
+      if (tabIndex == 4) return 3;
+      if (tabIndex == 5) return 1;
+      return 0;
     }
+
     return Scaffold(
       backgroundColor:
           isDark ? const Color(0xFF0F0F10) : Theme.of(context).colorScheme.surface,
@@ -216,100 +212,101 @@ class _FeedScreenState extends State<FeedScreen> {
         children: [
           SafeArea(
             bottom: false,
-            child: IndexedStack( 
+            child: IndexedStack(
               index: getStackIndex(_currentTabIndex),
               children: [
                 // INDEX 0: FEED
-                Column(
-                  children: [
-                    FeedHeader(onCreatePost: _toggleCreateModal),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: _feedScrollController,
-                        child: Center(
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 1100),
-                            padding: const EdgeInsets.only(left: 16, right: 16, top: 32, bottom: 100),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 640),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        _buildFeedHeader(isDark),
-                                        const SizedBox(height: 24),
-                                        StatusInput(
-                                          onTap: _toggleCreateModal,
-                                          avatarUrl: currentAvatar,
-                                        ),
-                                        const SizedBox(height: 24),
-                                        if (postProvider.isLoadingFeed && feedPosts.isEmpty)
-                                          const Padding(
-                                            padding: EdgeInsets.symmetric(vertical: 32),
-                                            child: Center(child: CircularProgressIndicator()),
-                                          )
-                                        else if ((postProvider.error ?? '').isNotEmpty && feedPosts.isEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(vertical: 16),
-                                            child: Column(
-                                              children: [
-                                                Text(
-                                                  postProvider.error!,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: isDark
-                                                        ? Colors.white70
-                                                        : AppTheme.slate700,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 10),
-                                                ElevatedButton(
-                                                  onPressed: () => context.read<PostProvider>().loadFeed(forceRefresh: true),
-                                                  child: const Text('Tải lại bài viết'),
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        else if (feedPosts.isEmpty)
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(vertical: 24),
-                                            child: Text(
-                                              'Chưa có bài viết nào trong bảng tin.',
-                                              style: TextStyle(
-                                                color: isDark
-                                                    ? Colors.white70
-                                                    : AppTheme.slate700,
-                                              ),
-                                            ),
-                                          )
-                                        else
-                                          ...feedPosts.map(
-                                            (post) => Padding(
-                                              padding: const EdgeInsets.only(bottom: 32),
-                                              child: PostCard(
-                                                post: post,
-                                                currentUserAvatar: currentAvatar,
-                                                canManage: post.userId == currentUserId,
-                                                onToggleLike: () => context.read<PostProvider>().toggleLike(post),
-                                                onEditPost: () => _showEditPostDialog(postProvider, post),
-                                                onDeletePost: () => _confirmDeletePost(postProvider, post),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
+                SingleChildScrollView(
+                  controller: _feedScrollController,
+                  child: Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 1100),
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 16,
+                        bottom: 100,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 640),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Stories + mini header (ở trên cùng, không có gì trước nó)
+                            StoriesSection(onCreatePost: _toggleCreateModal),
+                            const SizedBox(height: 16),
+                            StatusInput(
+                              onTap: _toggleCreateModal,
+                              avatarUrl: currentAvatar,
+                            ),
+                            const SizedBox(height: 24),
+                            if (postProvider.isLoadingFeed && feedPosts.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32),
+                                child: Center(child: CircularProgressIndicator()),
+                              )
+                            else if ((postProvider.error ?? '').isNotEmpty &&
+                                feedPosts.isEmpty)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      postProvider.error!,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white70
+                                            : AppTheme.slate700,
+                                      ),
                                     ),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton(
+                                      onPressed: () => context
+                                          .read<PostProvider>()
+                                          .loadFeed(forceRefresh: true),
+                                      child: const Text('Tải lại bài viết'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (feedPosts.isEmpty)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 24),
+                                child: Text(
+                                  'Chưa có bài viết nào trong bảng tin.',
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white70
+                                        : AppTheme.slate700,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                              )
+                            else
+                              ...feedPosts.map(
+                                (post) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 32),
+                                  child: PostCard(
+                                    post: post,
+                                    currentUserAvatar: currentAvatar,
+                                    canManage: post.userId == currentUserId,
+                                    onToggleLike: () => context
+                                        .read<PostProvider>()
+                                        .toggleLike(post),
+                                    onEditPost: () => _showEditPostDialog(
+                                        postProvider, post),
+                                    onDeletePost: () => _confirmDeletePost(
+                                        postProvider, post),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
                 // INDEX 1: PROFILE
                 const ProfileBody(),
@@ -317,8 +314,8 @@ class _FeedScreenState extends State<FeedScreen> {
                 const MessageListBody(),
                 // INDEX 3: NOTIFICATION
                 const NotificationScreen(),
-                /// INDEX 4: FRIEND REQUEST
-                 const FriendRequestScreen()
+                // INDEX 4: FRIEND REQUEST
+                const FriendRequestScreen(),
               ],
             ),
           ),
@@ -335,29 +332,6 @@ class _FeedScreenState extends State<FeedScreen> {
             CreatePostModal(onClose: _toggleCreateModal),
         ],
       ),
-    );
-  } // <--- Thêm dấu đóng hàm build ở đây
-
-  Widget _buildFeedHeader(bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Bảng tin',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : AppTheme.slate900,
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.tune,
-            color: isDark ? AppTheme.slate400 : AppTheme.slate600,
-          ),
-          onPressed: () {},
-        ),
-      ],
     );
   }
 }

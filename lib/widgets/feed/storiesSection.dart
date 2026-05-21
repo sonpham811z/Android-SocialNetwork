@@ -1,218 +1,231 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
+import '../../providers/themeProvider.dart';
 
 class StoriesSection extends StatelessWidget {
-  const StoriesSection({super.key});
+  final VoidCallback onCreatePost;
+
+  const StoriesSection({super.key, required this.onCreatePost});
+
+  static const _storyGradient = LinearGradient(
+    colors: [
+      Color(0xFF8B5CF6),
+      Color(0xFFEC4899),
+      Color(0xFFF59E0B),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 190,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          // Create story card
-          _buildCreateStoryCard(),
-          const SizedBox(width: 12),
-          
-          // Story cards
-          ...MockData.stories.map((story) => Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _buildStoryCard(story),
-          )),
-        ],
-      ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Mini header: logo + actions
+        Row(
+          children: [
+            Text(
+              'Zest',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+                color: isDark ? Colors.white : AppTheme.slate900,
+              ),
+            ),
+            const Spacer(),
+            _iconButton(
+              icon: Icons.search_rounded,
+              isDark: isDark,
+              onTap: () {},
+            ),
+            const SizedBox(width: 6),
+            _iconButton(
+              icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              isDark: isDark,
+              onTap: () => themeProvider.toggleTheme(),
+            ),
+            const SizedBox(width: 6),
+            _iconButton(
+              icon: Icons.add_rounded,
+              isDark: isDark,
+              onTap: onCreatePost,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        // Story circles
+        SizedBox(
+          height: 98,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.zero,
+            children: [
+              _buildAddStoryItem(isDark),
+              const SizedBox(width: 16),
+              ...MockData.stories.map(
+                (story) => Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: _buildStoryItem(isDark, story),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCreateStoryCard() {
-    return Container(
-      width: 110,
-      decoration: BoxDecoration(
-        color: const Color(0xFF18181B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.slate900),
-      ),
-      child: Stack(
-        children: [
-          // User image at top
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 123, // 65% of 190
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-              child: Image.network(
-                MockData.currentUser.avatar,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppTheme.slate800,
-                    child: const Icon(Icons.person, color: Colors.white),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // Bottom section
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 67, // 35% of 190
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF18181B),
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(16),
-                ),
-              ),
-              child: const Center(
-                child: Text(
-                  'Tạo tin',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Plus button
-          Positioned(
-            bottom: 47, // Position at the border
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF18181B),
-                    width: 4,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStoryCard(Story story) {
-    return Container(
-      width: 110,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.slate900.withOpacity(0.5),
+  Widget _iconButton({
+    required IconData icon,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF18181B) : AppTheme.slate100,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: isDark ? AppTheme.slate400 : AppTheme.slate700,
         ),
       ),
-      child: Stack(
-        children: [
-          // Story image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              story.image,
-              width: 110,
-              height: 190,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: AppTheme.slate800,
-                  child: const Icon(Icons.image, color: Colors.white),
-                );
-              },
-            ),
-          ),
+    );
+  }
 
-          // Gradient overlay
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.3),
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.6),
-                ],
-              ),
-            ),
-          ),
-
-          // User avatar
-          Positioned(
-            top: 8,
-            left: 8,
-            child: Container(
-              width: 36,
-              height: 36,
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: story.isSeen ? AppTheme.slate500 : Colors.blue,
-              ),
-              child: ClipOval(
-                child: Image.network(
-                  story.user.avatar,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppTheme.slate800,
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-
-          // User name
-          Positioned(
-            bottom: 12,
-            left: 8,
-            right: 8,
-            child: Text(
-              story.user.name,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    blurRadius: 4,
-                    color: Colors.black,
+  Widget _buildAddStoryItem(bool isDark) {
+    return GestureDetector(
+      onTap: () {},
+      child: SizedBox(
+        width: 66,
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark ? AppTheme.slate800 : AppTheme.slate200,
                   ),
-                ],
+                  child: ClipOval(
+                    child: Image.network(
+                      MockData.currentUser.avatar,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.person,
+                        size: 32,
+                        color: isDark ? Colors.white54 : AppTheme.slate500,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 1,
+                  bottom: 1,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.violetPrimary,
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF0F0F10) : Colors.white,
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 13),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Của bạn',
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? AppTheme.slate400 : AppTheme.slate600,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoryItem(bool isDark, Story story) {
+    final hasUnseenStory = !story.isSeen;
+
+    return GestureDetector(
+      onTap: () {},
+      child: SizedBox(
+        width: 66,
+        child: Column(
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: hasUnseenStory ? _storyGradient : null,
+                color: hasUnseenStory
+                    ? null
+                    : (isDark ? AppTheme.slate700 : AppTheme.slate300),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF0F0F10) : Colors.white,
+                    width: 2,
+                  ),
+                ),
+                child: ClipOval(
+                  child: Image.network(
+                    story.user.avatar,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppTheme.slate800,
+                      child: const Icon(Icons.person, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              story.user.name,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight:
+                    hasUnseenStory ? FontWeight.w600 : FontWeight.normal,
+                color: isDark
+                    ? (hasUnseenStory ? Colors.white : AppTheme.slate400)
+                    : (hasUnseenStory ? AppTheme.slate900 : AppTheme.slate500),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
