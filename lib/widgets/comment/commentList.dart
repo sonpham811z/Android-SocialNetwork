@@ -14,6 +14,7 @@ class CommentList extends StatelessWidget {
   final Future<bool> Function(String commentId, String content)? onEdit;
   final void Function(String commentId)? onDelete;
   final void Function(String commentId)? onLike;
+  final void Function(String userId)? onAvatarTap;
   final VoidCallback? onRetry;
   /// Set of comment IDs that were just added (for fade-in animation)
   final Set<String> newCommentIds;
@@ -29,6 +30,7 @@ class CommentList extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onLike,
+    this.onAvatarTap,
     this.onRetry,
     this.newCommentIds = const {},
   });
@@ -173,6 +175,7 @@ class CommentList extends StatelessWidget {
               },
               onDelete: () => onDelete?.call(parent.id),
               onLike: () => onLike?.call(parent.id),
+              onAvatarTap: () => onAvatarTap?.call(parent.userId),
             ),
             // Child comments (replies)
             ...replies.map(
@@ -187,6 +190,7 @@ class CommentList extends StatelessWidget {
                 },
                 onDelete: () => onDelete?.call(reply.id),
                 onLike: () => onLike?.call(reply.id),
+                onAvatarTap: () => onAvatarTap?.call(reply.userId),
               ),
             ),
             // "View more replies" hint

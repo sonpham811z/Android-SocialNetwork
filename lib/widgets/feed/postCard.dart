@@ -11,6 +11,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onToggleLike;
   final VoidCallback? onEditPost;
   final VoidCallback? onDeletePost;
+  final VoidCallback? onAuthorTap;
 
   const PostCard({
     super.key,
@@ -20,6 +21,7 @@ class PostCard extends StatelessWidget {
     this.onToggleLike,
     this.onEditPost,
     this.onDeletePost,
+    this.onAuthorTap,
   });
 
   @override
@@ -38,13 +40,13 @@ class PostCard extends StatelessWidget {
         boxShadow: [
           if (isDark)
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(0, 4),
             )
           else
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 24,
               offset: const Offset(0, 6),
             ),
@@ -118,31 +120,37 @@ class PostCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundImage: NetworkImage(post.user.avatar),
+          GestureDetector(
+            onTap: onAuthorTap,
+            child: CircleAvatar(
+              radius: 20,
+              backgroundImage: NetworkImage(post.user.avatar),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      post.user.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: isDark ? Colors.white : AppTheme.slate900,
+                GestureDetector(
+                  onTap: onAuthorTap,
+                  child: Row(
+                    children: [
+                      Text(
+                        post.user.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: isDark ? Colors.white : AppTheme.slate900,
+                        ),
                       ),
-                    ),
-                    if (post.id.contains('voice')) 
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4),
-                        child: Icon(Icons.verified, size: 14, color: Colors.blue),
-                      ),
-                  ],
+                      if (post.id.contains('voice'))
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(Icons.verified, size: 14, color: Colors.blue),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(

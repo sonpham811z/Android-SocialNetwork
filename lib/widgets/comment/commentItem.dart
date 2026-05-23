@@ -11,6 +11,7 @@ class CommentItem extends StatefulWidget {
   final VoidCallback? onDelete;
   final Future<bool> Function(String content)? onEdit;
   final VoidCallback? onLike;
+  final VoidCallback? onAvatarTap;
   final bool isNew;
 
   const CommentItem({
@@ -22,6 +23,7 @@ class CommentItem extends StatefulWidget {
     this.onDelete,
     this.onEdit,
     this.onLike,
+    this.onAvatarTap,
     this.isNew = false,
   });
 
@@ -154,6 +156,7 @@ class _CommentItemState extends State<CommentItem>
           children: [
             // ── Avatar ──
             GestureDetector(
+              onTap: widget.onAvatarTap,
               onLongPress: () => _showOptions(context),
               child: CircleAvatar(
                 radius: widget.isReply ? 14 : 18,

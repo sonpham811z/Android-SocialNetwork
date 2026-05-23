@@ -5,6 +5,7 @@ import 'package:flutter_social_app/screens/appScreen/homeScreen.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
+import '../../providers/notificationProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../widgets/feed/statusInput.dart';
@@ -15,6 +16,7 @@ import '../../widgets/feed/createPostModal.dart';
 import '../../widgets/messages/messageListBody.dart';
 import '../../widgets/profile/profileBody.dart';
 import 'notificationScreen.dart';
+import 'userProfileScreen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -44,12 +46,16 @@ class _FeedScreenState extends State<FeedScreen> {
         listener = () {
           if (!authProvider.isCheckingAuth) {
             authProvider.removeListener(listener);
-            if (mounted) context.read<PostProvider>().loadFeed();
+            if (mounted) {
+              context.read<PostProvider>().loadFeed();
+              context.read<NotificationProvider>().init();
+            }
           }
         };
         authProvider.addListener(listener);
       } else {
         context.read<PostProvider>().loadFeed();
+        context.read<NotificationProvider>().init();
       }
     });
   }
@@ -195,6 +201,8 @@ class _FeedScreenState extends State<FeedScreen> {
     final currentUserId = context.watch<AuthProvider>().user?.id ?? '';
     final currentAvatar = context.watch<UserProfileProvider>().profile?.avatar;
     final feedPosts = postProvider.feedPosts;
+    final notificationBadge =
+        context.watch<NotificationProvider>().unreadCount;
 
     int getStackIndex(int tabIndex) {
       if (tabIndex == 0) return 0;
@@ -299,6 +307,14 @@ class _FeedScreenState extends State<FeedScreen> {
                                         postProvider, post),
                                     onDeletePost: () => _confirmDeletePost(
                                         postProvider, post),
+                                    onAuthorTap: post.userId == currentUserId
+                                        ? null
+                                        : () => UserProfileScreen.open(
+                                              context,
+                                              post.userId,
+                                              displayName: post.user.name,
+                                              avatarUrl: post.user.avatar,
+                                            ),
                                   ),
                                 ),
                               ),
@@ -326,6 +342,7 @@ class _FeedScreenState extends State<FeedScreen> {
               onTabSelected: _handleTabChange,
               avatarUrl: currentAvatar,
               isVisible: _isDockVisible,
+              notificationBadge: notificationBadge,
             ),
 
           if (_showCreateModal)

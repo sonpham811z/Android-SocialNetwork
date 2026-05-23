@@ -6,6 +6,7 @@ class FloatingDock extends StatelessWidget {
   final Function(int) onTabSelected;
   final String? avatarUrl;
   final bool isVisible;
+  final int notificationBadge;
 
   const FloatingDock({
     super.key,
@@ -13,23 +14,23 @@ class FloatingDock extends StatelessWidget {
     required this.onTabSelected,
     this.avatarUrl,
     this.isVisible = true,
+    this.notificationBadge = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // --- Theme-aware colors ---
     final dockBg = isDark
-        ? const Color(0xFF18181B).withOpacity(0.96)
-        : const Color(0xFF1F1F1F).withOpacity(0.88);
+        ? const Color(0xFF18181B).withValues(alpha: 0.96)
+        : const Color(0xFF1F1F1F).withValues(alpha: 0.88);
     final borderColor = isDark
-        ? const Color(0xFFFFFFFF).withOpacity(0.08) // #FFFFFF14
-        : const Color(0xFFFFFFFF).withOpacity(0.12); // #FFFFFF20
-    final activeIconColor = Colors.white;
+        ? const Color(0xFFFFFFFF).withValues(alpha: 0.08)
+        : const Color(0xFFFFFFFF).withValues(alpha: 0.12);
+    const activeIconColor = Colors.white;
     final inactiveIconColor = isDark
-        ? const Color(0xFFA1A1AA) // zinc-400
-        : const Color(0xFFD1D5DB); // gray-300
+        ? const Color(0xFFA1A1AA)
+        : const Color(0xFFD1D5DB);
 
     return Positioned(
       bottom: isDark ? 28 : 24,
@@ -54,13 +55,13 @@ class FloatingDock extends StatelessWidget {
                   border: Border.all(color: borderColor, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.5 : 0.25),
+                      color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.25),
                       blurRadius: isDark ? 24 : 28,
                       spreadRadius: isDark ? 0 : 2,
                       offset: const Offset(0, 10),
                     ),
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -80,7 +81,6 @@ class FloatingDock extends StatelessWidget {
                         inactiveColor: inactiveIconColor),
 
                     const SizedBox(width: 2),
-                    // Center "+" button
                     _buildAddButton(isDark),
                     const SizedBox(width: 2),
 
@@ -89,7 +89,7 @@ class FloatingDock extends StatelessWidget {
                         activeColor: activeIconColor,
                         inactiveColor: inactiveIconColor),
                     _buildDockItem(Icons.notifications_outlined, 4,
-                        badge: 9,
+                        badge: notificationBadge > 0 ? notificationBadge : null,
                         activeColor: activeIconColor,
                         inactiveColor: inactiveIconColor),
                     _buildProfileItem(5),
@@ -115,23 +115,17 @@ class FloatingDock extends StatelessWidget {
               ? const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFF3F4F6), // soft white
-                    Color(0xFFE5E7EB), // gray-200
-                  ],
+                  colors: [Color(0xFFF3F4F6), Color(0xFFE5E7EB)],
                 )
               : const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFF9FAFB), // near-white
-                    Color(0xFFE5E7EB), // gray-200
-                  ],
+                  colors: [Color(0xFFF9FAFB), Color(0xFFE5E7EB)],
                 ),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -159,14 +153,14 @@ class FloatingDock extends StatelessWidget {
         children: [
           Material(
             color: isActive
-                ? Colors.white.withOpacity(0.12)
+                ? Colors.white.withValues(alpha: 0.12)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
             child: InkWell(
               onTap: () => onTabSelected(index),
               borderRadius: BorderRadius.circular(14),
-              splashColor: Colors.white.withOpacity(0.08),
-              highlightColor: Colors.white.withOpacity(0.05),
+              splashColor: Colors.white.withValues(alpha: 0.08),
+              highlightColor: Colors.white.withValues(alpha: 0.05),
               child: SizedBox(
                 width: 40,
                 height: 40,
@@ -178,7 +172,7 @@ class FloatingDock extends StatelessWidget {
               ),
             ),
           ),
-          if (badge != null)
+          if (badge != null && badge > 0)
             Positioned(
               right: -2,
               top: -2,
@@ -193,7 +187,7 @@ class FloatingDock extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  badge.toString(),
+                  badge > 99 ? '99+' : badge.toString(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 8,
@@ -224,7 +218,7 @@ class FloatingDock extends StatelessWidget {
             border: Border.all(
               color: isActive
                   ? Colors.white
-                  : Colors.white.withOpacity(0.15),
+                  : Colors.white.withValues(alpha: 0.15),
               width: isActive ? 2 : 1,
             ),
           ),

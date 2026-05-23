@@ -1,15 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/notificationModel.dart';
+import '../../providers/notificationProvider.dart';
 
-class NotificationScreen extends StatelessWidget {
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationProvider>().loadNotifications(refresh: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      context.read<NotificationProvider>().loadNotifications();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF18191A), // Màu nền Facebook dark
+      backgroundColor: const Color(0xFF18191A),
       appBar: AppBar(
         title: const Text(
-          "Thông báo",
+          'Thông báo',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -22,212 +55,181 @@ class NotificationScreen extends StatelessWidget {
           preferredSize: const Size.fromHeight(0.5),
           child: Container(height: 0.5, color: Colors.grey[800]),
         ),
-      ),
-      body: ListView(
-        children: const [
-          // Mục Yêu cầu theo dõi
-          FollowRequestItem(),
-
-          // Tin nổi bật
-          SectionHeader(title: "Tin nổi bật"),
-          NotificationItem(
-            names: ["trantrandangiu_71", "rasbrryxrrt"],
-            content: "đã chia sẻ ghi chú",
-            time: "5 giờ",
-          ),
-
-          // 7 ngày qua
-          SectionHeader(title: "7 ngày qua"),
-          NotificationItem(
-            names: ["im_prettypanh", "stackovermemes"],
-            content: "đã chia sẻ 8 ảnh",
-            time: "3 ngày",
-          ),
-          NotificationItem(
-            names: ["im_prettypanh"],
-            content: "vừa chia sẻ một bài viết",
-            time: "5 ngày",
-          ),
-          NotificationItem(
-            names: ["im_prettypanh", "stackovermemes"],
-            content: "đã chia sẻ 6 ảnh",
-            time: "5 ngày",
-          ),
-
-          // 30 ngày qua
-          SectionHeader(title: "30 ngày qua"),
-          NotificationItem(
-            names: ["rasbrryxrtr", "amournamy"],
-            content: "đã chia sẻ 5 ảnh",
-            time: "1 tuần",
-          ),
-          NotificationItem(
-            names: ["huyhn._.thuw", "rasbrryxrtr"],
-            content: "đã chia sẻ 8 ảnh",
-            time: "1 tuần",
-          ),
-          NotificationItem(
-            names: ["rasbrryxrtr", "huyhn._.thuw"],
-            content: "đã chia sẻ 7 ảnh",
-            time: "1 tuần",
+        actions: [
+          Consumer<NotificationProvider>(
+            builder: (_, provider, __) {
+              if (provider.unreadCount == 0) return const SizedBox.shrink();
+              return TextButton(
+                onPressed: provider.isLoading ? null : provider.markAllAsRead,
+                child: const Text(
+                  'Đọc tất cả',
+                  style: TextStyle(color: Color(0xFF2D88FF), fontSize: 14),
+                ),
+              );
+            },
           ),
         ],
       ),
-    );
-  }
-}
+      body: Consumer<NotificationProvider>(
+        builder: (context, provider, _) {
+          if (provider.isLoading && provider.notifications.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2D88FF)),
+            );
+          }
 
-/// Tiêu đề từng nhóm (Tin nổi bật, 7 ngày qua,...)
-class SectionHeader extends StatelessWidget {
-  final String title;
-  const SectionHeader({super.key, required this.title});
+          if (provider.error != null && provider.notifications.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.grey, size: 48),
+                  const SizedBox(height: 12),
+                  Text(
+                    provider.error!,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () =>
+                        provider.loadNotifications(refresh: true),
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Color(0xFFB0B3B8),
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-        ),
+          if (provider.notifications.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.notifications_none,
+                      color: Colors.grey, size: 64),
+                  SizedBox(height: 12),
+                  Text(
+                    'Chưa có thông báo nào',
+                    style: TextStyle(color: Color(0xFFB0B3B8), fontSize: 15),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final items = provider.notifications;
+          return RefreshIndicator(
+            color: const Color(0xFF2D88FF),
+            backgroundColor: const Color(0xFF242526),
+            onRefresh: () => provider.loadNotifications(refresh: true),
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.only(bottom: 100),
+              itemCount: items.length + (provider.hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == items.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF2D88FF),
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  );
+                }
+                return _NotificationTile(
+                  notification: items[index],
+                  onTap: () => provider.markAsRead(items[index].id),
+                );
+              },
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-/// Item đặc biệt cho "Yêu cầu theo dõi"
-class FollowRequestItem extends StatelessWidget {
-  const FollowRequestItem({super.key});
+class _NotificationTile extends StatelessWidget {
+  final NotificationModel notification;
+  final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: Color(0xFF3A3B3C),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.person_add_alt_1,
-              color: Color(0xFF2D88FF),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  "Yêu cầu theo dõi",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  "Phê duyệt hoặc bỏ qua yêu cầu",
-                  style: TextStyle(
-                    color: Color(0xFFB0B3B8),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Có thể thêm nút nếu muốn, nhưng theo mô tả chỉ có text
-          // Nên giữ nguyên.
-        ],
-      ),
-    );
-  }
-}
-
-/// Item thông báo chung (có danh sách tên, nội dung, thời gian)
-class NotificationItem extends StatelessWidget {
-  final List<String> names;
-  final String content;
-  final String time;
-
-  const NotificationItem({
-    super.key,
-    required this.names,
-    required this.content,
-    required this.time,
+  const _NotificationTile({
+    required this.notification,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Tạo chuỗi hiển thị tên: "tên1, tên2 và những người khác"
-    String namesDisplay;
-    if (names.length == 1) {
-      namesDisplay = names.first;
-    } else if (names.length == 2) {
-      namesDisplay = "${names[0]} và ${names[1]}";
-    } else {
-      // Nếu nhiều hơn 2, lấy 2 tên đầu + "và những người khác"
-      namesDisplay = "${names[0]}, ${names[1]} và những người khác";
-    }
+    final isUnread = !notification.isRead;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar (đại diện cho người đầu tiên, hoặc icon nhóm)
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: Colors.grey[850],
-            backgroundImage: NetworkImage(
-              "https://i.pravatar.cc/150?img=${names.hashCode % 70}", // random theo tên
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: isUnread
+            ? const Color(0xFF2D88FF).withValues(alpha: 0.06)
+            : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon circle
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: notification.iconColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                notification.icon,
+                color: notification.iconColor,
+                size: 22,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      color: Color(0xFFE4E6EB),
-                      fontSize: 15,
-                      height: 1.3,
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notification.message,
+                    style: TextStyle(
+                      color: isUnread ? Colors.white : const Color(0xFFB0B3B8),
+                      fontSize: 14,
+                      fontWeight:
+                          isUnread ? FontWeight.w600 : FontWeight.normal,
+                      height: 1.4,
                     ),
-                    children: [
-                      TextSpan(
-                        text: namesDisplay,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(text: " $content"),
-                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    color: Color(0xFFB0B3B8),
-                    fontSize: 12,
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.timeAgo,
+                    style: TextStyle(
+                      color: isUnread
+                          ? const Color(0xFF2D88FF)
+                          : const Color(0xFFB0B3B8),
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // Icon nhỏ bên phải (có thể là ảnh đại diện phụ, nhưng FB thường không có)
-          // Để trống cho đơn giản
-        ],
+            // Unread dot
+            if (isUnread)
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(top: 6, left: 8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2D88FF),
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

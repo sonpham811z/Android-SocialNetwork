@@ -30,6 +30,14 @@ class Environment {
       ? 'http://$_localHost:5177/hubs/message'
       : 'https://sonpham-socialnet-api.duckdns.org/message/hubs/message';
 
+  static const String notificationServiceBaseUrl = _isLocal
+      ? 'http://$_localHost:5095/api'
+      : 'https://sonpham-socialnet-api.duckdns.org/notification/api';
+
+  static const String notificationHubUrl = _isLocal
+      ? 'http://$_localHost:5095/hubs/notification'
+      : 'https://sonpham-socialnet-api.duckdns.org/notification/hubs/notification';
+
   static const String googleClientId =
       '69350263890-k8a18rev98t4g3mjs1njnmq4qbjt3hsc.apps.googleusercontent.com';
 

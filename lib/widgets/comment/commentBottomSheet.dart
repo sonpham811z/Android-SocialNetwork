@@ -5,6 +5,7 @@ import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../providers/userProfileProvider.dart';
+import '../../screens/appScreen/userProfileScreen.dart';
 import 'commentInput.dart';
 import 'commentList.dart';
 
@@ -256,7 +257,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                               height: 30,
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? Colors.white.withOpacity(0.1)
+                                    ? Colors.white.withValues(alpha: 0.1)
                                     : AppTheme.slate100,
                                 shape: BoxShape.circle,
                               ),
@@ -278,7 +279,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                 Divider(
                   height: 1,
                   color:
-                      isDark ? Colors.white.withOpacity(0.06) : AppTheme.slate200,
+                      isDark ? Colors.white.withValues(alpha: 0.06) : AppTheme.slate200,
                 ),
 
                 // ─── Comment list ───
@@ -298,6 +299,11 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                             widget.post.id,
                             commentId,
                           );
+                    },
+                    onAvatarTap: (userId) {
+                      if (userId == currentUserId) return;
+                      Navigator.of(context).pop();
+                      UserProfileScreen.open(context, userId);
                     },
                     onRetry: _loadComments,
                   ),

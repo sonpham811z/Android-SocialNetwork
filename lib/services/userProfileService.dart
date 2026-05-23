@@ -130,6 +130,19 @@ return parsed.data;
     }
   }
 
+  Future<User?> getProfileByUserId(String userId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_userProfileBaseUrl/userid/${Uri.encodeComponent(userId)}',
+      );
+      return _parseUserResponse(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data.toString() ?? e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
   Future<User?> getProfileByUsername(String username) async {
     try {
       final response = await _apiClient.dio.get(

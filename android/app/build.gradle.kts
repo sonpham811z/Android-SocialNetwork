@@ -12,7 +12,9 @@ android {
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
+        // Fix lỗi thiếu phiên bản ở dòng dưới đây:
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -41,4 +43,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
