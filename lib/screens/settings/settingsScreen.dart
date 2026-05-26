@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import 'changePasswordScreen.dart';
+import 'personalInformationScreen.dart';
+import 'notificationsScreen.dart';
+import 'displayThemeScreen.dart';
+import 'languageScreen.dart';
+import 'helpCenterScreen.dart';
+import 'aboutAppScreen.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
@@ -37,7 +43,18 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 16),
           
           _buildSectionHeader('Account', isDark),
-          _buildSettingItem(context, Icons.person_outline, 'Personal Information', isDark),
+          _buildSettingItem(
+            context, 
+            Icons.person_outline, 
+            'Personal Information', 
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PersonalInformationScreen()),
+              );
+            },
+          ),
           _buildSettingItem(
             context, 
             Icons.shield_outlined, 
@@ -54,15 +71,70 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 24),
           
           _buildSectionHeader('Preferences', isDark),
-          _buildSettingItem(context, Icons.notifications_none_outlined, 'Notifications', isDark),
-          _buildSettingItem(context, Icons.palette_outlined, 'Display & Theme', isDark),
-          _buildSettingItem(context, Icons.language_outlined, 'Language', isDark),
+          _buildSettingItem(
+            context,
+            Icons.notifications_none_outlined,
+            'Notifications',
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              );
+            },
+          ),
+          _buildSettingItem(
+            context,
+            Icons.palette_outlined,
+            'Display & Theme',
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DisplayThemeScreen()),
+              );
+            },
+          ),
+          _buildSettingItem(
+            context,
+            Icons.language_outlined,
+            'Language',
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LanguageScreen()),
+              );
+            },
+          ),
           
           const SizedBox(height: 24),
           
           _buildSectionHeader('Support', isDark),
-          _buildSettingItem(context, Icons.help_outline, 'Help Center', isDark),
-          _buildSettingItem(context, Icons.info_outline, 'About App', isDark),
+          _buildSettingItem(
+            context,
+            Icons.help_outline,
+            'Help Center',
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+              );
+            },
+          ),
+          _buildSettingItem(
+            context,
+            Icons.info_outline,
+            'About App',
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutAppScreen()),
+              );
+            },
+          ),
           
           const SizedBox(height: 32),
           
