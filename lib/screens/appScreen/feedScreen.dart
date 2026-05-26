@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_social_app/screens/appScreen/friendRequestScreen.dart';
+import '../friends/friends_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_social_app/screens/appScreen/homeScreen.dart';
 import '../../config/theme.dart';
@@ -330,8 +330,8 @@ class _FeedScreenState extends State<FeedScreen> {
                 const MessageListBody(),
                 // INDEX 3: NOTIFICATION
                 const NotificationScreen(),
-                // INDEX 4: FRIEND REQUEST
-                const FriendRequestScreen(),
+                // INDEX 4: FRIENDS
+                const FriendsScreen(),
               ],
             ),
           ),

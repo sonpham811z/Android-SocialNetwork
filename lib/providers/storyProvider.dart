@@ -97,4 +97,18 @@ class StoryProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void sharePostToStoryLocally(UserProfile currentUser, Post post) {
+    final story = Story(
+      id: 'story_shared_${DateTime.now().millisecondsSinceEpoch}',
+      user: currentUser,
+      mediaUrl: post.image ?? 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500',
+      mediaType: 'Image',
+      viewsCount: 0,
+      isViewedByCurrentUser: false,
+      isOwner: true,
+      createdAt: 'Vừa xong',
+    );
+    _prependOwnStory(story);
+  }
 }

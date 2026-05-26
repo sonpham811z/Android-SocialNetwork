@@ -91,7 +91,7 @@ class PostProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> createTextPost(String content) async {
+  Future<bool> createTextPost(String content, {String visibility = 'Public'}) async {
     final normalized = content.trim();
     if (normalized.isEmpty || _isSubmitting) {
       return false;
@@ -102,7 +102,7 @@ class PostProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final created = await _service.createTextPost(content: normalized);
+      final created = await _service.createTextPost(content: normalized, visibility: visibility);
       if (created != null) {
         _feedPosts.insert(0, created);
         _myPosts.insert(0, created);
