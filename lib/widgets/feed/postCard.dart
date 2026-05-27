@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import 'package:provider/provider.dart';
@@ -111,6 +110,10 @@ class PostCard extends StatelessWidget {
                 ),
               ),
             ),
+
+          // 3b. ORIGINAL POST PREVIEW (nếu đây là bài share)
+          if (post.originalPost != null)
+            _buildOriginalPostPreview(context, post.originalPost!, isDark),
 
           // 4. Footer: Like, Comment, Share
           _buildPostFooter(context, isDark),
@@ -244,7 +247,7 @@ class PostCard extends StatelessWidget {
               _buildInteractionButton(
                 context,
                 icon: Icons.share_outlined,
-                label: 'Share',
+                label: post.sharesCount > 0 ? '${post.sharesCount}' : 'Chia sẻ',
                 color: isDark ? Colors.white : AppTheme.slate900,
                 onTap: () => _showShareBottomSheet(context),
               ),
@@ -254,6 +257,91 @@ class PostCard extends StatelessWidget {
             Icons.bookmark_border, 
             color: isDark ? AppTheme.slate400 : AppTheme.slate600
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOriginalPostPreview(BuildContext context, Post original, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1B1E) : const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? const Color(0xFF3A3B3C) : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header của bài gốc
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: Colors.grey[600],
+                  backgroundImage: original.user.avatar.isNotEmpty
+                      ? NetworkImage(original.user.avatar)
+                      : null,
+                  child: original.user.avatar.isEmpty
+                      ? const Icon(Icons.person, size: 14, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        original.user.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isDark ? Colors.white : AppTheme.slate900,
+                        ),
+                      ),
+                      Text(
+                        original.timestamp,
+                        style: TextStyle(color: AppTheme.slate500, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Nội dung bài gốc
+          if (original.content.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Text(
+                original.content,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : AppTheme.slate700,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          // Ảnh bài gốc
+          if (original.image != null)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+              child: Image.network(
+                original.image!,
+                height: 160,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            )
+          else
+            const SizedBox(height: 4),
         ],
       ),
     );
@@ -311,17 +399,20 @@ class _ShareBottomSheet extends StatefulWidget {
 class _ShareBottomSheetState extends State<_ShareBottomSheet> {
   bool _showMessengerScreen = false;
   late TextEditingController _messengerMessageController;
+  late TextEditingController _captionController;
   final Set<String> _selectedContactIds = {};
 
   @override
   void initState() {
     super.initState();
     _messengerMessageController = TextEditingController();
+    _captionController = TextEditingController();
   }
 
   @override
   void dispose() {
     _messengerMessageController.dispose();
+    _captionController.dispose();
     super.dispose();
   }
 
@@ -446,59 +537,6 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
 
   bool _showAudienceScreen = false;
   String _selectedAudience = 'Công khai';
-  bool _isDefaultAudience = true;
-
-  bool _showDestinationScreen = false;
-  String _selectedDestination = 'Chia sẻ lên Bảng feed';
-
-  String _getDestinationShortText(String destination) {
-    if (destination == 'Chia sẻ lên Bảng feed') return 'Bảng feed';
-    if (destination == 'Tin của bạn') return 'Tin của bạn';
-    if (destination == 'Trên trang cá nhân của một người bạn') return 'Trang cá nhân';
-    if (destination == 'Trong nhóm') return 'Trong nhóm';
-    return destination;
-  }
-
-  IconData _getDestinationIcon(String destination) {
-    if (destination == 'Chia sẻ lên Bảng feed') return Icons.feed_outlined;
-    if (destination == 'Tin của bạn') return Icons.add_to_photos_outlined;
-    if (destination == 'Trên trang cá nhân của một người bạn') return Icons.people_outline_rounded;
-    if (destination == 'Trong nhóm') return Icons.group_outlined;
-    return Icons.feed_outlined;
-  }
-
-  Widget _buildDestinationOption({
-    required String title,
-    required IconData icon,
-  }) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedDestination = title;
-          _showDestinationScreen = false;
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   IconData _getAudienceIcon(String audience) {
     switch (audience) {
@@ -506,10 +544,6 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
         return Icons.public;
       case 'Bạn bè':
         return Icons.people_outline_rounded;
-      case 'Bạn bè ngoại trừ...':
-        return Icons.person_remove_alt_1_outlined;
-      case 'Bạn bè cụ thể':
-        return Icons.person_outline_rounded;
       case 'Chỉ mình tôi':
         return Icons.lock_outline_rounded;
       default:
@@ -656,63 +690,22 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               value: 'Công khai',
               icon: Icons.public,
               title: 'Công khai',
-              subtitle: 'Bất kỳ ai ở trên hoặc ngoài Facebook',
+              subtitle: 'Tất cả mọi người đều có thể xem',
               onChanged: (val) => setState(() => _selectedAudience = val),
             ),
             _buildAudienceOption(
               value: 'Bạn bè',
               icon: Icons.people_outline_rounded,
               title: 'Bạn bè',
-              subtitle: 'Bạn bè của bạn trên Facebook',
-              onChanged: (val) => setState(() => _selectedAudience = val),
-            ),
-            _buildAudienceOption(
-              value: 'Bạn bè ngoại trừ...',
-              icon: Icons.person_remove_alt_1_outlined,
-              title: 'Bạn bè ngoại trừ...',
-              subtitle: 'Không hiển thị với một số bạn bè',
-              onChanged: (val) => setState(() => _selectedAudience = val),
-            ),
-            _buildAudienceOption(
-              value: 'Bạn bè cụ thể',
-              icon: Icons.person_outline_rounded,
-              title: 'Bạn bè cụ thể',
-              subtitle: 'Chỉ hiển thị với một số bạn bè',
+              subtitle: 'Chỉ bạn bè của bạn',
               onChanged: (val) => setState(() => _selectedAudience = val),
             ),
             _buildAudienceOption(
               value: 'Chỉ mình tôi',
               icon: Icons.lock_outline_rounded,
               title: 'Chỉ mình tôi',
-              subtitle: 'Chỉ mình tôi',
+              subtitle: 'Chỉ mình bạn thấy',
               onChanged: (val) => setState(() => _selectedAudience = val),
-            ),
-            const SizedBox(height: 24),
-
-            // Default audience option
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Đặt làm đối tượng mặc định.',
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  Checkbox(
-                    value: _isDefaultAudience,
-                    activeColor: const Color(0xFF1877F2),
-                    checkColor: Colors.white,
-                    onChanged: (val) {
-                      setState(() => _isDefaultAudience = val ?? false);
-                    },
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 16),
 
@@ -740,65 +733,6 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_showDestinationScreen) {
-      return Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1F22),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        padding: EdgeInsets.fromLTRB(0, 12, 0, bottomPadding + 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top App Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                    onPressed: () {
-                      setState(() => _showDestinationScreen = false);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Chọn đích đến',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Divider(color: Colors.grey[800], height: 1),
-            const SizedBox(height: 8),
-
-            // Destination Options
-            _buildDestinationOption(
-              title: 'Chia sẻ lên Bảng feed',
-              icon: Icons.feed_outlined,
-            ),
-            _buildDestinationOption(
-              title: 'Tin của bạn',
-              icon: Icons.add_to_photos_outlined,
-            ),
-            _buildDestinationOption(
-              title: 'Trên trang cá nhân của một người bạn',
-              icon: Icons.people_outline_rounded,
-            ),
-            _buildDestinationOption(
-              title: 'Trong nhóm',
-              icon: Icons.group_outlined,
             ),
           ],
         ),
@@ -1202,11 +1136,11 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info, color: Colors.grey[500], size: 16),
+                  Icon(Icons.info_outline, color: Colors.grey[500], size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Bạn bè của bạn có thể nhận được lời mời tham gia nhóm.',
+                      'Bài chia sẻ sẽ xuất hiện trên bảng feed của bạn.',
                       style: TextStyle(
                         color: Colors.grey[400],
                         fontSize: 12.5,
@@ -1255,39 +1189,33 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                _buildDropdownSelector(
-                                  _getDestinationIcon(_selectedDestination),
-                                  _getDestinationShortText(_selectedDestination),
-                                  () {
-                                    setState(() => _showDestinationScreen = true);
-                                  },
-                                ),
-                                const SizedBox(width: 6),
-                                _buildDropdownSelector(
-                                  _getAudienceIcon(_selectedAudience),
-                                  _selectedAudience,
-                                  () {
-                                    setState(() => _showAudienceScreen = true);
-                                  },
-                                ),
-                              ],
+                            _buildDropdownSelector(
+                              _getAudienceIcon(_selectedAudience),
+                              _selectedAudience,
+                              () {
+                                setState(() => _showAudienceScreen = true);
+                              },
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Bạn nói gì đi...',
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 14,
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _captionController,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Bạn nói gì đi...',
+                      hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
                     ),
+                    maxLines: 4,
+                    minLines: 1,
+                    textInputAction: TextInputAction.newline,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1307,6 +1235,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                             apiVisibility = 'Private';
                           }
 
+                          final caption = _captionController.text.trim();
                           final postProvider = Provider.of<PostProvider>(context, listen: false);
                           final scaffoldMessenger = ScaffoldMessenger.of(context);
                           Navigator.pop(context);
@@ -1316,8 +1245,9 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
-                          postProvider.createTextPost(
-                            widget.post.content,
+                          postProvider.sharePost(
+                            widget.post.id,
+                            content: caption,
                             visibility: apiVisibility,
                           ).then((success) {
                             if (success) {
@@ -1511,47 +1441,6 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                       setState(() {
                         _showMessengerScreen = true;
                       });
-                    },
-                  ),
-                  _buildShareOption(
-                    context,
-                    icon: Icons.group_outlined,
-                    label: 'Nhóm',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đang mở danh sách nhóm...'), behavior: SnackBarBehavior.floating),
-                      );
-                    },
-                  ),
-                  _buildShareOption(
-                    context,
-                    icon: Icons.link_rounded,
-                    label: 'Sao chép liên kết',
-                    onTap: () {
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
-                      Navigator.pop(context);
-                      final link = "https://thanhquang05.github.io/posts/${widget.post.id}";
-                      Clipboard.setData(ClipboardData(text: link)).then((_) {
-                        scaffoldMessenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Đã sao chép liên kết bài viết!'),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Color(0xFF1877F2),
-                          ),
-                        );
-                      });
-                    },
-                  ),
-                  _buildShareOption(
-                    context,
-                    icon: Icons.more_horiz_rounded,
-                    label: 'Tìm kiếm...',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đang mở...'), behavior: SnackBarBehavior.floating),
-                      );
                     },
                   ),
                 ],

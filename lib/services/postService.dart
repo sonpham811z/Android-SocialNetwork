@@ -119,6 +119,22 @@ class PostService {
     }
   }
 
+  Future<Post?> sharePost({
+    required String originalPostId,
+    String content = '',
+    String visibility = 'Public',
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '$_postBaseUrl/$originalPostId/share',
+        data: {'content': content, 'visibility': visibility},
+      );
+      return _extractSinglePost(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<bool> likePost(String postId) async {
     try {
       final response = await _apiClient.dio.post('$_postBaseUrl/$postId/like');

@@ -136,8 +136,12 @@ class Post {
   final String? audioDuration; // [NEW] Thời lượng (Optional, vd: "0:45")
   final int likes;
   final int commentsCount;
+  final int sharesCount;
   final bool isLikedByCurrentUser;
   final List<Comment>? commentsList;
+  // Share reference
+  final String? originalPostId;
+  final Post? originalPost;
 
   Post({
     required this.id,
@@ -151,8 +155,11 @@ class Post {
     this.audioDuration, // [NEW]
     required this.likes,
     required this.commentsCount,
+    this.sharesCount = 0,
     this.isLikedByCurrentUser = false,
     this.commentsList,
+    this.originalPostId,
+    this.originalPost,
   });
 
   factory Post.fromApi(Map<String, dynamic> json) {
@@ -172,6 +179,19 @@ class Post {
           .toList();
     }
 
+    // Parse originalPost nếu có
+    Post? originalPost;
+    final originalPostRaw = json['originalPost'];
+    if (originalPostRaw is Map) {
+      try {
+        originalPost = Post.fromApi(originalPostRaw.cast<String, dynamic>());
+      } catch (_) {
+        originalPost = null;
+      }
+    }
+
+    final originalPostId = asText(json['originalPostId']);
+
     return Post(
       id: asText(json['id']),
       userId: asText(json['userId']),
@@ -187,8 +207,11 @@ class Post {
           : asText(json['audioDuration']),
       likes: _toInt(json['likesCount']),
       commentsCount: _toInt(json['commentsCount']),
+      sharesCount: _toInt(json['sharesCount']),
       isLikedByCurrentUser: _toBool(json['isLikedByCurrentUser']),
       commentsList: comments,
+      originalPostId: originalPostId.isEmpty ? null : originalPostId,
+      originalPost: originalPost,
     );
   }
 
@@ -196,8 +219,10 @@ class Post {
     String? content,
     int? likes,
     int? commentsCount,
+    int? sharesCount,
     bool? isLikedByCurrentUser,
     List<Comment>? commentsList,
+    Post? originalPost,
   }) {
     return Post(
       id: id,
@@ -211,8 +236,11 @@ class Post {
       audioDuration: audioDuration,
       likes: likes ?? this.likes,
       commentsCount: commentsCount ?? this.commentsCount,
+      sharesCount: sharesCount ?? this.sharesCount,
       isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
       commentsList: commentsList ?? this.commentsList,
+      originalPostId: originalPostId,
+      originalPost: originalPost ?? this.originalPost,
     );
   }
 

@@ -172,6 +172,40 @@ class PostProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> sharePost(
+    String originalPostId, {
+    String content = '',
+    String visibility = 'Public',
+  }) async {
+    if (_isSubmitting) return false;
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final created = await _service.sharePost(
+        originalPostId: originalPostId,
+        content: content,
+        visibility: visibility,
+      );
+      if (created != null) {
+        _feedPosts.insert(0, created);
+        _myPosts.insert(0, created);
+        // Cập nhật sharesCount của bài gốc (optimistic)
+        _updatePostById(originalPostId, (p) => p.copyWith(sharesCount: p.sharesCount + 1));
+      }
+      _isSubmitting = false;
+      notifyListeners();
+      return created != null;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _isSubmitting = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> toggleLike(Post post) async {
     final isLiked = post.isLikedByCurrentUser;
     final optimistic = post.copyWith(
