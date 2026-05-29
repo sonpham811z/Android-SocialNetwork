@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/languageProvider.dart';
 
 class AboutAppScreen extends StatelessWidget {
   const AboutAppScreen({super.key});
@@ -9,6 +11,7 @@ class AboutAppScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final t = context.watch<LanguageProvider>().translate;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F10) : AppTheme.slate50,
@@ -19,7 +22,7 @@ class AboutAppScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('About App',
+        title: Text(t('about_app'),
             style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
@@ -40,44 +43,44 @@ class AboutAppScreen extends StatelessWidget {
             child: const Icon(Icons.people_alt_rounded, size: 80, color: Colors.white),
           ),
           const SizedBox(height: 20),
-          Text('Social Network',
+          Text(t('social_network'),
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.slate900)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(color: _fbBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: const Text('Version 1.0.0', style: TextStyle(color: _fbBlue, fontWeight: FontWeight.w600, fontSize: 13)),
+            child: Text('${t('version')} 1.0.0', style: const TextStyle(color: _fbBlue, fontWeight: FontWeight.w600, fontSize: 13)),
           ),
           const SizedBox(height: 8),
-          Text('Connect. Share. Inspire.',
+          Text(t('connect_share_inspire'),
               style: TextStyle(color: isDark ? AppTheme.slate500 : AppTheme.slate400, fontSize: 15, fontStyle: FontStyle.italic)),
           const SizedBox(height: 28),
 
           // ===== APP INFO =====
           _buildInfoCard(isDark, [
-            _infoTile('Version', '1.0.0', Icons.info_outline, isDark),
+            _infoTile(t('version'), '1.0.0', Icons.info_outline, isDark),
             _divider(isDark),
-            _infoTile('Build Number', '2026.05.26', Icons.build_outlined, isDark),
+            _infoTile(t('build_number'), '2026.05.26', Icons.build_outlined, isDark),
             _divider(isDark),
-            _infoTile('Developer', 'Son Pham', Icons.code_rounded, isDark),
+            _infoTile(t('developer'), 'Son Pham', Icons.code_rounded, isDark),
             _divider(isDark),
-            _infoTile('Website', 'socialnetwork.app', Icons.language_rounded, isDark),
+            _infoTile(t('website'), 'socialnetwork.app', Icons.language_rounded, isDark),
           ]),
           const SizedBox(height: 16),
 
           // ===== LEGAL =====
           _buildInfoCard(isDark, [
-            _navTile('Privacy Policy', Icons.privacy_tip_outlined, isDark, context),
+            _navTile(t('privacy_policy'), Icons.privacy_tip_outlined, isDark, context, t),
             _divider(isDark),
-            _navTile('Terms of Service', Icons.description_outlined, isDark, context),
+            _navTile(t('terms_of_service'), Icons.description_outlined, isDark, context, t),
           ]),
           const SizedBox(height: 16),
 
           // ===== LICENSES =====
           _buildInfoCard(isDark, [
-            _navTile('Licenses', Icons.article_outlined, isDark, context),
+            _navTile(t('licenses'), Icons.article_outlined, isDark, context, t),
             _divider(isDark),
-            _navTile('Acknowledgements', Icons.favorite_border_rounded, isDark, context),
+            _navTile(t('acknowledgements'), Icons.favorite_border_rounded, isDark, context, t),
           ]),
           const SizedBox(height: 28),
 
@@ -86,9 +89,9 @@ class AboutAppScreen extends StatelessWidget {
             width: double.infinity, height: 56,
             child: ElevatedButton.icon(
               onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Thank you for your support!'), behavior: SnackBarBehavior.floating)),
+                  SnackBar(content: Text(t('thank_you_support')), behavior: SnackBarBehavior.floating)),
               icon: const Icon(Icons.star_rounded, size: 22),
-              label: const Text('Rate This App', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              label: Text(t('rate_this_app'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _fbBlue, foregroundColor: Colors.white, elevation: 4,
                 shadowColor: _fbBlue.withOpacity(0.4),
@@ -99,10 +102,10 @@ class AboutAppScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // ===== COPYRIGHT =====
-          Text('© 2026 Social Network. All rights reserved.',
+          Text(t('copyright'),
               style: TextStyle(color: isDark ? AppTheme.slate600 : AppTheme.slate400, fontSize: 12)),
           const SizedBox(height: 8),
-          Text('Made with ❤️ in Vietnam',
+          Text(t('made_in_vietnam'),
               style: TextStyle(color: isDark ? AppTheme.slate600 : AppTheme.slate400, fontSize: 12)),
           const SizedBox(height: 32),
         ]),
@@ -134,7 +137,7 @@ class AboutAppScreen extends StatelessWidget {
     );
   }
 
-  Widget _navTile(String title, IconData icon, bool isDark, BuildContext context) {
+  Widget _navTile(String title, IconData icon, bool isDark, BuildContext context, String Function(String) t) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: Container(
@@ -145,7 +148,7 @@ class AboutAppScreen extends StatelessWidget {
       title: Text(title, style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900, fontWeight: FontWeight.w500, fontSize: 14)),
       trailing: Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.slate500),
       onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$title — coming soon!'), behavior: SnackBarBehavior.floating)),
+          SnackBar(content: Text('$title${t('coming_soon_suffix')}'), behavior: SnackBarBehavior.floating)),
     );
   }
 

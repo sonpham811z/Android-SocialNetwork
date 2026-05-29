@@ -13,6 +13,7 @@ import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../providers/friendProvider.dart';
 import '../../providers/conversationProvider.dart';
+import '../../providers/languageProvider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -20,6 +21,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final t = context.watch<LanguageProvider>().translate;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F10) : AppTheme.slate50,
@@ -31,7 +33,7 @@ class SettingsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Settings',
+          t('settings'),
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
@@ -42,11 +44,11 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const SizedBox(height: 16),
           
-          _buildSectionHeader('Account', isDark),
+          _buildSectionHeader(t('account'), isDark),
           _buildSettingItem(
             context, 
             Icons.person_outline, 
-            'Personal Information', 
+            t('personal_information'), 
             isDark,
             onTap: () {
               Navigator.push(
@@ -58,7 +60,7 @@ class SettingsScreen extends StatelessWidget {
           _buildSettingItem(
             context, 
             Icons.shield_outlined, 
-            'Change Password', 
+            t('change_password'), 
             isDark,
             onTap: () {
               Navigator.push(
@@ -70,11 +72,11 @@ class SettingsScreen extends StatelessWidget {
           
           const SizedBox(height: 24),
           
-          _buildSectionHeader('Preferences', isDark),
+          _buildSectionHeader(t('preferences'), isDark),
           _buildSettingItem(
             context,
             Icons.notifications_none_outlined,
-            'Notifications',
+            t('notifications'),
             isDark,
             onTap: () {
               Navigator.push(
@@ -86,7 +88,7 @@ class SettingsScreen extends StatelessWidget {
           _buildSettingItem(
             context,
             Icons.palette_outlined,
-            'Display & Theme',
+            t('display_theme'),
             isDark,
             onTap: () {
               Navigator.push(
@@ -98,7 +100,7 @@ class SettingsScreen extends StatelessWidget {
           _buildSettingItem(
             context,
             Icons.language_outlined,
-            'Language',
+            t('language'),
             isDark,
             onTap: () {
               Navigator.push(
@@ -110,11 +112,11 @@ class SettingsScreen extends StatelessWidget {
           
           const SizedBox(height: 24),
           
-          _buildSectionHeader('Support', isDark),
+          _buildSectionHeader(t('support'), isDark),
           _buildSettingItem(
             context,
             Icons.help_outline,
-            'Help Center',
+            t('help_center'),
             isDark,
             onTap: () {
               Navigator.push(
@@ -126,7 +128,7 @@ class SettingsScreen extends StatelessWidget {
           _buildSettingItem(
             context,
             Icons.info_outline,
-            'About App',
+            t('about_app'),
             isDark,
             onTap: () {
               Navigator.push(
@@ -152,13 +154,13 @@ class SettingsScreen extends StatelessWidget {
                   side: BorderSide(color: Colors.red.withOpacity(0.3)),
                 ),
               ),
-              onPressed: () => _showLogoutConfirmDialog(context, isDark),
-              child: const Row(
+              onPressed: () => _showLogoutConfirmDialog(context, isDark, t),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.logout),
-                  SizedBox(width: 8),
-                  Text('Log Out', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Icon(Icons.logout),
+                  const SizedBox(width: 8),
+                  Text(t('log_out'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -206,33 +208,34 @@ class SettingsScreen extends StatelessWidget {
       ),
       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.slate500),
       onTap: onTap ?? () {
+        final t = context.read<LanguageProvider>().translate;
         // Fallback nếu không truyền onTap
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Feature coming soon!')),
+          SnackBar(content: Text(t('feature_coming_soon'))),
         );
       },
     );
   }
 
   // Popup hỏi xác nhận đăng xuất
-  void _showLogoutConfirmDialog(BuildContext context, bool isDark) {
+  void _showLogoutConfirmDialog(BuildContext context, bool isDark, String Function(String) t) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? AppTheme.slate900 : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Log Out',
+          t('log_out'),
           style: TextStyle(color: isDark ? Colors.white : Colors.black),
         ),
         content: Text(
-          'Are you sure you want to log out of your account?',
+          t('log_out_confirm'),
           style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx), // Đóng dialog
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(t('cancel'), style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
@@ -254,7 +257,7 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
               }
             },
-            child: const Text('Log Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(t('log_out'), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

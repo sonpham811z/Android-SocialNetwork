@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/languageProvider.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -9,7 +11,6 @@ class LanguageScreen extends StatefulWidget {
 }
 
 class _LanguageScreenState extends State<LanguageScreen> {
-  String _selectedLanguage = 'en';
   String _searchQuery = '';
   final _searchController = TextEditingController();
 
@@ -18,19 +19,6 @@ class _LanguageScreenState extends State<LanguageScreen> {
   final List<Map<String, String>> _languages = const [
     {'code': 'en', 'name': 'English', 'native': 'English', 'flag': '🇺🇸'},
     {'code': 'vi', 'name': 'Vietnamese', 'native': 'Tiếng Việt', 'flag': '🇻🇳'},
-    {'code': 'zh', 'name': 'Chinese', 'native': '中文', 'flag': '🇨🇳'},
-    {'code': 'es', 'name': 'Spanish', 'native': 'Español', 'flag': '🇪🇸'},
-    {'code': 'fr', 'name': 'French', 'native': 'Français', 'flag': '🇫🇷'},
-    {'code': 'de', 'name': 'German', 'native': 'Deutsch', 'flag': '🇩🇪'},
-    {'code': 'ja', 'name': 'Japanese', 'native': '日本語', 'flag': '🇯🇵'},
-    {'code': 'ko', 'name': 'Korean', 'native': '한국어', 'flag': '🇰🇷'},
-    {'code': 'pt', 'name': 'Portuguese', 'native': 'Português', 'flag': '🇵🇹'},
-    {'code': 'it', 'name': 'Italian', 'native': 'Italiano', 'flag': '🇮🇹'},
-    {'code': 'ru', 'name': 'Russian', 'native': 'Русский', 'flag': '🇷🇺'},
-    {'code': 'ar', 'name': 'Arabic', 'native': 'العربية', 'flag': '🇸🇦'},
-    {'code': 'hi', 'name': 'Hindi', 'native': 'हिन्दी', 'flag': '🇮🇳'},
-    {'code': 'th', 'name': 'Thai', 'native': 'ภาษาไทย', 'flag': '🇹🇭'},
-    {'code': 'id', 'name': 'Indonesian', 'native': 'Indonesia', 'flag': '🇮🇩'},
   ];
 
   List<Map<String, String>> get _filteredLanguages {
@@ -54,6 +42,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final filtered = _filteredLanguages;
+    final lang = context.watch<LanguageProvider>();
+    final t = lang.translate;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F10) : AppTheme.slate50,
@@ -66,7 +56,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Language',
+          t('language'),
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
@@ -88,7 +78,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: isDark ? AppTheme.slate800 : Colors.white,
-                hintText: 'Search language...',
+                hintText: t('search_language'),
                 hintStyle: TextStyle(
                   color: isDark ? AppTheme.slate500 : AppTheme.slate400,
                   fontSize: 15,
@@ -145,7 +135,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                                 isDark ? AppTheme.slate600 : AppTheme.slate400),
                         const SizedBox(height: 12),
                         Text(
-                          'No languages found',
+                          t('no_languages_found'),
                           style: TextStyle(
                             color: isDark
                                 ? AppTheme.slate500
@@ -160,8 +150,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final lang = filtered[index];
-                      final isSelected = _selectedLanguage == lang['code'];
+                      final langItem = filtered[index];
+                      final isSelected = lang.languageCode == langItem['code'];
 
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(
@@ -179,12 +169,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            lang['flag']!,
+                            langItem['flag']!,
                             style: const TextStyle(fontSize: 22),
                           ),
                         ),
                         title: Text(
-                          lang['name']!,
+                          langItem['name']!,
                           style: TextStyle(
                             color: isSelected
                                 ? _fbBlue
@@ -196,7 +186,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                           ),
                         ),
                         subtitle: Text(
-                          lang['native']!,
+                          langItem['native']!,
                           style: TextStyle(
                             color: isDark
                                 ? AppTheme.slate500
@@ -209,7 +199,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                                 color: _fbBlue, size: 22)
                             : null,
                         onTap: () {
-                          setState(() => _selectedLanguage = lang['code']!);
+                          lang.setLanguage(langItem['code']!);
                           Navigator.pop(context);
                         },
                       );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/languageProvider.dart';
 import 'languageScreen.dart';
 
 class DisplayThemeScreen extends StatefulWidget {
@@ -20,6 +22,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final t = context.watch<LanguageProvider>().translate;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F10) : AppTheme.slate50,
@@ -32,7 +35,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Display & Theme',
+          t('display_theme'),
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
@@ -43,34 +46,34 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         children: [
           // ===== THEME SELECTOR =====
-          _buildSectionHeader('Theme', isDark),
+          _buildSectionHeader(t('theme'), isDark),
           const SizedBox(height: 12),
-          _buildThemeSelector(isDark),
+          _buildThemeSelector(isDark, t),
 
           const SizedBox(height: 28),
 
           // ===== TEXT SIZE =====
-          _buildSectionHeader('Text Size', isDark),
+          _buildSectionHeader(t('text_size'), isDark),
           const SizedBox(height: 12),
-          _buildTextSizeSlider(isDark),
+          _buildTextSizeSlider(isDark, t),
 
           const SizedBox(height: 28),
 
           // ===== ACCESSIBILITY =====
-          _buildSectionHeader('Accessibility', isDark),
+          _buildSectionHeader(t('accessibility'), isDark),
           const SizedBox(height: 4),
           _buildSwitchTile(
             icon: Icons.motion_photos_off_outlined,
-            title: 'Reduce Motion',
-            subtitle: 'Minimize animations throughout the app',
+            title: t('reduce_motion'),
+            subtitle: t('reduce_motion_desc'),
             value: _reduceMotion,
             isDark: isDark,
             onChanged: (v) => setState(() => _reduceMotion = v),
           ),
           _buildSwitchTile(
             icon: Icons.contrast_rounded,
-            title: 'High Contrast',
-            subtitle: 'Increase contrast for better visibility',
+            title: t('high_contrast'),
+            subtitle: t('high_contrast_desc'),
             value: _highContrast,
             isDark: isDark,
             onChanged: (v) => setState(() => _highContrast = v),
@@ -81,7 +84,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
           const SizedBox(height: 12),
 
           // ===== LANGUAGE =====
-          _buildLanguageTile(isDark),
+          _buildLanguageTile(isDark, t),
 
           const SizedBox(height: 40),
         ],
@@ -103,12 +106,12 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
   }
 
   // ===== THEME SELECTOR (3 CARDS) =====
-  Widget _buildThemeSelector(bool isDark) {
+  Widget _buildThemeSelector(bool isDark, String Function(String) t) {
     return Row(
       children: [
         _buildThemeCard(
           key: 'light',
-          label: 'Light',
+          label: t('light'),
           icon: Icons.light_mode_rounded,
           gradientColors: [const Color(0xFFFFF9C4), const Color(0xFFFFE082)],
           iconColor: const Color(0xFFF9A825),
@@ -117,7 +120,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
         const SizedBox(width: 12),
         _buildThemeCard(
           key: 'dark',
-          label: 'Dark',
+          label: t('dark'),
           icon: Icons.dark_mode_rounded,
           gradientColors: [const Color(0xFF1A237E), const Color(0xFF311B92)],
           iconColor: const Color(0xFF7C4DFF),
@@ -126,7 +129,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
         const SizedBox(width: 12),
         _buildThemeCard(
           key: 'system',
-          label: 'System',
+          label: t('system'),
           icon: Icons.settings_suggest_rounded,
           gradientColors: [const Color(0xFF0D47A1), const Color(0xFF1565C0)],
           iconColor: const Color(0xFF42A5F5),
@@ -237,7 +240,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
   }
 
   // ===== TEXT SIZE SLIDER =====
-  Widget _buildTextSizeSlider(bool isDark) {
+  Widget _buildTextSizeSlider(bool isDark, String Function(String) t) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -259,7 +262,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Font Size',
+                t('font_size'),
                 style: TextStyle(
                   color: isDark ? Colors.white : AppTheme.slate900,
                   fontWeight: FontWeight.w600,
@@ -352,7 +355,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
                 color: isDark ? Colors.white : AppTheme.slate900,
                 fontWeight: FontWeight.w500,
               ),
-              child: const Text('Preview Text'),
+              child: Text(t('preview_text')),
             ),
           ),
         ],
@@ -417,7 +420,9 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
   }
 
   // ===== LANGUAGE TILE =====
-  Widget _buildLanguageTile(bool isDark) {
+  Widget _buildLanguageTile(bool isDark, String Function(String) t) {
+    final langProvider = context.watch<LanguageProvider>();
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
       leading: Container(
@@ -433,7 +438,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
         ),
       ),
       title: Text(
-        'Language',
+        t('language'),
         style: TextStyle(
           color: isDark ? Colors.white : AppTheme.slate900,
           fontWeight: FontWeight.w500,
@@ -441,7 +446,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
         ),
       ),
       subtitle: Text(
-        'English',
+        langProvider.languageName,
         style: TextStyle(
           color: isDark ? AppTheme.slate500 : AppTheme.slate400,
           fontSize: 12,

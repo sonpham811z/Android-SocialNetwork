@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../config/theme.dart';
 import '../../providers/userProfileProvider.dart';
+import '../../providers/languageProvider.dart';
 
 class PersonalInformationScreen extends StatefulWidget {
   const PersonalInformationScreen({super.key});
@@ -104,12 +105,12 @@ class _PersonalInformationScreenState
                     : Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Column(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Uploading...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(context.read<LanguageProvider>().translate('uploading')),
                 ],
               ),
             ),
@@ -123,11 +124,12 @@ class _PersonalInformationScreenState
 
       if (mounted) {
         Navigator.pop(context); // close loading dialog
+        final t = context.read<LanguageProvider>().translate;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success
-                ? 'Profile picture updated!'
-                : provider.error ?? 'Failed to upload picture'),
+                ? t('profile_picture_updated')
+                : provider.error ?? t('profile_picture_failed')),
             backgroundColor: success ? Colors.green : Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -182,9 +184,10 @@ class _PersonalInformationScreenState
 
     if (updateData.isEmpty) {
       setState(() => _isSaving = false);
+      final t = context.read<LanguageProvider>().translate;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No changes to save'),
+        SnackBar(
+          content: Text(t('no_changes_to_save')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -202,11 +205,12 @@ class _PersonalInformationScreenState
         _editableFields.updateAll((key, value) => false);
       });
 
+      final t2 = context.read<LanguageProvider>().translate;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success
-              ? 'Profile updated successfully!'
-              : provider.error ?? 'Failed to update profile'),
+              ? t2('profile_updated')
+              : provider.error ?? t2('profile_update_failed')),
           backgroundColor: success ? Colors.green : Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -229,7 +233,7 @@ class _PersonalInformationScreenState
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Personal Information',
+          context.watch<LanguageProvider>().translate('personal_information'),
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
@@ -255,12 +259,12 @@ class _PersonalInformationScreenState
                   _buildEditableField(
                     fieldKey: 'fullName',
                     controller: _fullNameController,
-                    label: 'Full Name',
+                    label: context.watch<LanguageProvider>().translate('full_name'),
                     icon: Icons.person_outline,
                     isDark: isDark,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Full name is required';
+                        return context.read<LanguageProvider>().translate('full_name_required');
                       }
                       return null;
                     },
@@ -270,7 +274,7 @@ class _PersonalInformationScreenState
                   _buildEditableField(
                     fieldKey: 'username',
                     controller: _usernameController,
-                    label: 'Username',
+                    label: context.watch<LanguageProvider>().translate('username'),
                     icon: Icons.alternate_email,
                     isDark: isDark,
                   ),
@@ -279,7 +283,7 @@ class _PersonalInformationScreenState
                   _buildEditableField(
                     fieldKey: 'email',
                     controller: _emailController,
-                    label: 'Email',
+                    label: context.watch<LanguageProvider>().translate('email'),
                     icon: Icons.email_outlined,
                     isDark: isDark,
                     keyboardType: TextInputType.emailAddress,
@@ -291,7 +295,7 @@ class _PersonalInformationScreenState
                   _buildEditableField(
                     fieldKey: 'phone',
                     controller: _phoneController,
-                    label: 'Phone',
+                    label: context.watch<LanguageProvider>().translate('phone'),
                     icon: Icons.phone_outlined,
                     isDark: isDark,
                     keyboardType: TextInputType.phone,
@@ -301,7 +305,7 @@ class _PersonalInformationScreenState
                   _buildEditableField(
                     fieldKey: 'dob',
                     controller: _dobController,
-                    label: 'Date of Birth',
+                    label: context.watch<LanguageProvider>().translate('date_of_birth'),
                     icon: Icons.cake_outlined,
                     isDark: isDark,
                     hintText: 'DD/MM/YYYY',
@@ -312,11 +316,11 @@ class _PersonalInformationScreenState
                   _buildEditableField(
                     fieldKey: 'bio',
                     controller: _bioController,
-                    label: 'Bio',
+                    label: context.watch<LanguageProvider>().translate('bio'),
                     icon: Icons.info_outline,
                     isDark: isDark,
                     maxLines: 3,
-                    hintText: 'Tell something about yourself...',
+                    hintText: context.watch<LanguageProvider>().translate('bio_hint'),
                   ),
                   const SizedBox(height: 40),
 
@@ -346,14 +350,14 @@ class _PersonalInformationScreenState
                                     Colors.white),
                               ),
                             )
-                          : const Row(
+                          : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.save_rounded, size: 20),
-                                SizedBox(width: 8),
+                                const Icon(Icons.save_rounded, size: 20),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Save Changes',
-                                  style: TextStyle(
+                                  context.watch<LanguageProvider>().translate('save_changes'),
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),

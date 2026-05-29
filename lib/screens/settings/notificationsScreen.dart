@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/languageProvider.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -32,6 +34,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const activeColor = Color(0xFF1877F2);
+    final t = context.watch<LanguageProvider>().translate;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F10) : AppTheme.slate50,
@@ -44,7 +47,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Notifications',
+          t('notifications'),
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
@@ -56,27 +59,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 8),
 
           // ===== GENERAL =====
-          _buildSectionHeader('General', isDark),
+          _buildSectionHeader(t('general'), isDark),
           _buildSwitchTile(
             icon: Icons.notifications_active_outlined,
-            title: 'Push Notifications',
-            subtitle: 'Receive push notifications on your device',
+            title: t('push_notifications'),
+            subtitle: t('push_notifications_desc'),
             settingsKey: 'push',
             isDark: isDark,
             activeColor: activeColor,
           ),
           _buildSwitchTile(
             icon: Icons.email_outlined,
-            title: 'Email Notifications',
-            subtitle: 'Receive notifications via email',
+            title: t('email_notifications'),
+            subtitle: t('email_notifications_desc'),
             settingsKey: 'email',
             isDark: isDark,
             activeColor: activeColor,
           ),
           _buildSwitchTile(
             icon: Icons.sms_outlined,
-            title: 'SMS Notifications',
-            subtitle: 'Receive notifications via text message',
+            title: t('sms_notifications'),
+            subtitle: t('sms_notifications_desc'),
             settingsKey: 'sms',
             isDark: isDark,
             activeColor: activeColor,
@@ -86,35 +89,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _buildDivider(isDark),
 
           // ===== ACTIVITY =====
-          _buildSectionHeader('Activity', isDark),
+          _buildSectionHeader(t('activity'), isDark),
           _buildSwitchTile(
             icon: Icons.favorite_border_rounded,
-            title: 'Likes',
-            subtitle: 'Someone liked your post',
+            title: t('likes'),
+            subtitle: t('likes_desc'),
             settingsKey: 'likes',
             isDark: isDark,
             activeColor: activeColor,
           ),
           _buildSwitchTile(
             icon: Icons.chat_bubble_outline_rounded,
-            title: 'Comments',
-            subtitle: 'Someone commented on your post',
+            title: t('comments'),
+            subtitle: t('comments_desc'),
             settingsKey: 'comments',
             isDark: isDark,
             activeColor: activeColor,
           ),
           _buildSwitchTile(
             icon: Icons.alternate_email_rounded,
-            title: 'Mentions',
-            subtitle: 'Someone mentioned you',
+            title: t('mentions'),
+            subtitle: t('mentions_desc'),
             settingsKey: 'mentions',
             isDark: isDark,
             activeColor: activeColor,
           ),
           _buildSwitchTile(
             icon: Icons.person_add_alt_1_outlined,
-            title: 'New Followers',
-            subtitle: 'Someone started following you',
+            title: t('new_followers'),
+            subtitle: t('new_followers_desc'),
             settingsKey: 'newFollowers',
             isDark: isDark,
             activeColor: activeColor,
@@ -124,19 +127,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _buildDivider(isDark),
 
           // ===== MESSAGES =====
-          _buildSectionHeader('Messages', isDark),
+          _buildSectionHeader(t('messages'), isDark),
           _buildSwitchTile(
             icon: Icons.mark_email_unread_outlined,
-            title: 'Message Requests',
-            subtitle: 'Receive notifications for message requests',
+            title: t('message_requests'),
+            subtitle: t('message_requests_desc'),
             settingsKey: 'messageRequests',
             isDark: isDark,
             activeColor: activeColor,
           ),
           _buildSwitchTile(
             icon: Icons.send_rounded,
-            title: 'Direct Messages',
-            subtitle: 'Receive notifications for new messages',
+            title: t('direct_messages'),
+            subtitle: t('direct_messages_desc'),
             settingsKey: 'directMessages',
             isDark: isDark,
             activeColor: activeColor,
