@@ -416,8 +416,11 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
     super.dispose();
   }
 
-  Widget _buildContactRow(_MessengerContact contact) {
+  Widget _buildContactRow(_MessengerContact contact, bool isDark) {
     final isSelected = _selectedContactIds.contains(contact.id);
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final uncheckedBorderColor = isDark ? Colors.grey[600]! : const Color(0xFF94A3B8);
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -446,7 +449,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
             Expanded(
               child: Text(
                 contact.name,
-                style: const TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w500),
+                style: TextStyle(color: textColor, fontSize: 14.5, fontWeight: FontWeight.w500),
               ),
             ),
             // Custom Facebook Messenger style checkbox
@@ -457,7 +460,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                 shape: BoxShape.circle,
                 color: isSelected ? const Color(0xFF1877F2) : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF1877F2) : Colors.grey[600]!,
+                  color: isSelected ? const Color(0xFF1877F2) : uncheckedBorderColor,
                   width: 2,
                 ),
               ),
@@ -551,26 +554,30 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
     }
   }
 
-  Widget _buildDropdownSelector(IconData icon, String text, VoidCallback onTap) {
+  Widget _buildDropdownSelector(IconData icon, String text, VoidCallback onTap, bool isDark) {
+    final dropdownBgColor = isDark ? const Color(0xFF3A3B3C) : const Color(0xFFE2E8F0);
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF475569);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFF3A3B3C),
+          color: dropdownBgColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white70, size: 12),
+            Icon(icon, color: iconColor, size: 12),
             const SizedBox(width: 4),
             Text(
               text,
-              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+              style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.w500),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 12),
+            Icon(Icons.arrow_drop_down, color: iconColor, size: 12),
           ],
         ),
       ),
@@ -583,15 +590,20 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
     required String title,
     required String subtitle,
     required ValueChanged<String> onChanged,
+    required bool isDark,
   }) {
     final isSelected = value == _selectedAudience;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subColor = isDark ? Colors.grey[500] : const Color(0xFF64748B);
+    final borderColor = isSelected ? const Color(0xFF1877F2) : (isDark ? Colors.grey[600]! : const Color(0xFFCBD5E1));
+
     return InkWell(
       onTap: () => onChanged(value),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 24),
+            Icon(icon, color: textColor, size: 24),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -599,12 +611,12 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    style: TextStyle(color: subColor, fontSize: 13),
                   ),
                 ],
               ),
@@ -615,7 +627,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF1877F2) : Colors.grey[600]!,
+                  color: borderColor,
                   width: isSelected ? 6.5 : 2,
                 ),
               ),
@@ -633,11 +645,19 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
     final currentUserName = profileProvider.profile?.displayName ?? 'Quang Thanh Trương';
     final currentUserAvatar = profileProvider.profile?.avatar;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF1E1F22) : Colors.white;
+    final blockColor = isDark ? const Color(0xFF2B2D31) : const Color(0xFFF1F5F9);
+    final primaryTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark ? Colors.grey[400] : const Color(0xFF475569);
+    final subtitleColor = isDark ? Colors.grey[500] : const Color(0xFF64748B);
+    final dividerColor = isDark ? Colors.grey[800]! : const Color(0xFFCBD5E1);
+
     if (_showAudienceScreen) {
       return Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1F22),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         ),
         padding: EdgeInsets.fromLTRB(0, 12, 0, bottomPadding + 16),
         child: Column(
@@ -650,7 +670,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: primaryTextColor, size: 20),
                     onPressed: () {
                       setState(() => _showAudienceScreen = false);
                     },
@@ -661,12 +681,12 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
             const SizedBox(height: 8),
 
             // Heading
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Ai có thể xem bài viết của bạn?',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: primaryTextColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -678,7 +698,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               child: Text(
                 'Bài viết của bạn sẽ hiển thị trên Bảng feed, trang cá nhân và trong kết quả tìm kiếm.',
                 style: TextStyle(
-                  color: Colors.grey[400],
+                  color: secondaryTextColor,
                   fontSize: 14,
                 ),
               ),
@@ -692,6 +712,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               title: 'Công khai',
               subtitle: 'Tất cả mọi người đều có thể xem',
               onChanged: (val) => setState(() => _selectedAudience = val),
+              isDark: isDark,
             ),
             _buildAudienceOption(
               value: 'Bạn bè',
@@ -699,6 +720,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               title: 'Bạn bè',
               subtitle: 'Chỉ bạn bè của bạn',
               onChanged: (val) => setState(() => _selectedAudience = val),
+              isDark: isDark,
             ),
             _buildAudienceOption(
               value: 'Chỉ mình tôi',
@@ -706,6 +728,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               title: 'Chỉ mình tôi',
               subtitle: 'Chỉ mình bạn thấy',
               onChanged: (val) => setState(() => _selectedAudience = val),
+              isDark: isDark,
             ),
             const SizedBox(height: 16),
 
@@ -768,9 +791,9 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
       }
 
       return Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1F22),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         ),
         padding: EdgeInsets.fromLTRB(0, 12, 0, bottomPadding + 16),
         child: Column(
@@ -783,16 +806,16 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: primaryTextColor, size: 20),
                     onPressed: () {
                       setState(() => _showMessengerScreen = false);
                     },
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Gửi qua Messenger',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: primaryTextColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -800,7 +823,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                 ],
               ),
             ),
-            Divider(color: Colors.grey[800], height: 1),
+            Divider(color: dividerColor, height: 1),
             const SizedBox(height: 12),
 
             // Message Input
@@ -808,30 +831,30 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 controller: _messengerMessageController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Viết tin nhắn...',
-                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  hintStyle: TextStyle(color: subtitleColor, fontSize: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[800]!),
+                    borderSide: BorderSide(color: dividerColor),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[800]!),
+                    borderSide: BorderSide(color: dividerColor),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Color(0xFF1877F2)),
                   ),
                   filled: true,
-                  fillColor: const Color(0xFF2B2D31),
+                  fillColor: blockColor,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
             ),
             const SizedBox(height: 12),
-            Divider(color: Colors.grey[800], height: 1),
+            Divider(color: dividerColor, height: 1),
 
             // Friends List
             ConstrainedBox(
@@ -842,7 +865,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                 shrinkWrap: true,
                 itemCount: contacts.length,
                 itemBuilder: (context, idx) {
-                  return _buildContactRow(contacts[idx]);
+                  return _buildContactRow(contacts[idx], isDark);
                 },
               ),
             ),
@@ -857,9 +880,9 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                   onPressed: _selectedContactIds.isEmpty ? null : _sendMessengerMessages,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1877F2),
-                    disabledBackgroundColor: Colors.grey[800],
+                    disabledBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
                     foregroundColor: Colors.white,
-                    disabledForegroundColor: Colors.white38,
+                    disabledForegroundColor: isDark ? Colors.white38 : Colors.grey[500],
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -889,9 +912,9 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
     if (_selectedContactIds.isNotEmpty) {
       // Image 2 Layout (Messenger Share Mode)
       return Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1F22), // Sleek Facebook dark mode bg
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         ),
         padding: EdgeInsets.fromLTRB(0, 12, 0, bottomPadding + 16),
         child: SingleChildScrollView(
@@ -918,16 +941,16 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Gửi bằng Messenger',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: primaryTextColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                      icon: Icon(Icons.close, color: secondaryTextColor, size: 20),
                       onPressed: () {
                         setState(() {
                           _selectedContactIds.clear();
@@ -978,8 +1001,8 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                                       right: 0,
                                       bottom: 0,
                                       child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF1E1F22),
+                                        decoration: BoxDecoration(
+                                          color: backgroundColor,
                                           shape: BoxShape.circle,
                                         ),
                                         padding: const EdgeInsets.all(1.5),
@@ -1006,7 +1029,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.white70,
+                                  color: isSelected ? primaryTextColor : secondaryTextColor,
                                   fontSize: 12,
                                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                 ),
@@ -1026,20 +1049,20 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
                   controller: _messengerMessageController,
-                  style: const TextStyle(color: Colors.white, fontSize: 14.5),
+                  style: TextStyle(color: primaryTextColor, fontSize: 14.5),
                   decoration: InputDecoration(
                     hintText: 'Soạn tin nhắn...',
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.5),
+                    hintStyle: TextStyle(color: subtitleColor, fontSize: 14.5),
                     filled: true,
-                    fillColor: const Color(0xFF2B2D31),
+                    fillColor: blockColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.grey[800]!),
+                      borderSide: BorderSide(color: dividerColor),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: Colors.grey[800]!),
+                      borderSide: BorderSide(color: dividerColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -1061,8 +1084,8 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                         child: ElevatedButton(
                           onPressed: () => _sendMessengerMessages(isGroup: true),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2B2D31),
-                            foregroundColor: Colors.white,
+                            backgroundColor: blockColor,
+                            foregroundColor: primaryTextColor,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(22),
@@ -1107,9 +1130,9 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
 
     // Image 1 Layout (Default Share Layout)
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1F22), // Sleek Facebook dark mode bg
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       padding: EdgeInsets.fromLTRB(0, 12, 0, bottomPadding + 16),
       child: SingleChildScrollView(
@@ -1136,13 +1159,13 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, color: Colors.grey[500], size: 16),
+                  Icon(Icons.info_outline, color: subtitleColor, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Bài chia sẻ sẽ xuất hiện trên bảng feed của bạn.',
                       style: TextStyle(
-                        color: Colors.grey[400],
+                        color: secondaryTextColor,
                         fontSize: 12.5,
                       ),
                     ),
@@ -1157,7 +1180,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF2B2D31),
+                color: blockColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -1182,8 +1205,8 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                           children: [
                             Text(
                               currentUserName,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: primaryTextColor,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14.5,
                               ),
@@ -1195,6 +1218,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                               () {
                                 setState(() => _showAudienceScreen = true);
                               },
+                              isDark,
                             ),
                           ],
                         ),
@@ -1204,11 +1228,14 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _captionController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: primaryTextColor, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Bạn nói gì đi...',
-                      hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                      hintStyle: TextStyle(color: subtitleColor, fontSize: 14),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
                       contentPadding: EdgeInsets.zero,
                     ),
                     maxLines: 4,
@@ -1221,9 +1248,9 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.sentiment_satisfied_alt_outlined, color: Colors.grey[400], size: 24),
+                          Icon(Icons.sentiment_satisfied_alt_outlined, color: secondaryTextColor, size: 24),
                           const SizedBox(width: 14),
-                          Icon(Icons.person_add_alt_1_outlined, color: Colors.grey[400], size: 24),
+                          Icon(Icons.person_add_alt_1_outlined, color: secondaryTextColor, size: 24),
                         ],
                       ),
                       ElevatedButton(
@@ -1290,12 +1317,12 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
             const SizedBox(height: 20),
 
             // Section "Gửi bằng Messenger"
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Gửi bằng Messenger',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: primaryTextColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -1339,8 +1366,8 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                                     right: 0,
                                     bottom: 0,
                                     child: Container(
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF1E1F22),
+                                      decoration: BoxDecoration(
+                                        color: backgroundColor,
                                         shape: BoxShape.circle,
                                       ),
                                       padding: const EdgeInsets.all(1.5),
@@ -1366,8 +1393,8 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
+                              style: TextStyle(
+                                color: secondaryTextColor,
                                 fontSize: 12,
                               ),
                             ),
@@ -1382,12 +1409,12 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
             const SizedBox(height: 20),
 
             // Section "Chia sẻ lên"
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Chia sẻ lên',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: primaryTextColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -1434,6 +1461,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                         );
                       }
                     },
+                    isDark: isDark,
                   ),
                   _buildMessengerShareOption(
                     context,
@@ -1442,6 +1470,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                         _showMessengerScreen = true;
                       });
                     },
+                    isDark: isDark,
                   ),
                 ],
               ),
@@ -1457,7 +1486,12 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
+    final blockBgColor = isDark ? const Color(0xFF2B2D31) : const Color(0xFFE2E8F0);
+    final iconColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textColor = isDark ? Colors.white70 : const Color(0xFF475569);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1468,8 +1502,8 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: const Color(0xFF2B2D31),
-              child: Icon(icon, color: Colors.white, size: 24),
+              backgroundColor: blockBgColor,
+              child: Icon(icon, color: iconColor, size: 24),
             ),
             const SizedBox(height: 6),
             Text(
@@ -1477,8 +1511,8 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: textColor,
                 fontSize: 12,
               ),
             ),
@@ -1491,7 +1525,9 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
   Widget _buildMessengerShareOption(
     BuildContext context, {
     required VoidCallback onTap,
+    required bool isDark,
   }) {
+    final textColor = isDark ? Colors.white70 : const Color(0xFF475569);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1506,13 +1542,13 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               child: Icon(Icons.messenger_rounded, color: Color(0xFF1877F2), size: 28),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Messenger',
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.white70,
+                color: textColor,
                 fontSize: 12,
               ),
             ),
