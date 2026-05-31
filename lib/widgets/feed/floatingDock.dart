@@ -73,7 +73,7 @@ class FloatingDock extends StatelessWidget {
                     _buildDockItem(Icons.home_rounded, 0,
                         activeColor: activeIconColor,
                         inactiveColor: inactiveIconColor),
-                    _buildDockItem(Icons.explore_outlined, 1,
+                    _buildDockItem(Icons.campaign_rounded, 1,
                         activeColor: activeIconColor,
                         inactiveColor: inactiveIconColor),
                     _buildDockItem(Icons.people_outline_rounded, 2,

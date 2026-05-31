@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../friends/friends_screen.dart';
+import '../campusBoard/campusBoardScreen.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_social_app/screens/appScreen/homeScreen.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
@@ -206,6 +206,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
     int getStackIndex(int tabIndex) {
       if (tabIndex == 0) return 0;
+      if (tabIndex == 1) return 5;
       if (tabIndex == 2) return 4;
       if (tabIndex == 3) return 2;
       if (tabIndex == 4) return 3;
@@ -332,6 +333,8 @@ class _FeedScreenState extends State<FeedScreen> {
                 const NotificationScreen(),
                 // INDEX 4: FRIENDS
                 const FriendsScreen(),
+                // INDEX 5: CAMPUS BOARD
+                const CampusBoardScreen(),
               ],
             ),
           ),

@@ -63,6 +63,23 @@ class MessageService {
     }
   }
 
+  Future<ConversationModel> createGroupConversation(
+    String groupName,
+    List<String> memberIds,
+  ) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '${Environment.messageServiceBaseUrl}/conversations/group',
+        data: {'groupName': groupName, 'members': memberIds},
+      );
+      final body = asJsonMap(response.data) ?? {};
+      return ConversationModel.fromJson(
+          asJsonMap(body['data'] ?? body['Data']) ?? {});
+    } catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   Future<void> markAsRead(String conversationId) async {
     try {
       await _apiClient.dio.patch(

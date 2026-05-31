@@ -250,6 +250,24 @@ class PostService {
     }
   }
 
+  Future<bool> likeComment(String commentId) async {
+    try {
+      final response = await _apiClient.dio.post('$_postBaseUrl/comments/$commentId/like');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> unlikeComment(String commentId) async {
+    try {
+      final response = await _apiClient.dio.delete('$_postBaseUrl/comments/$commentId/like');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Post? _extractSinglePost(dynamic raw) {
     final payload = _readData(raw);
     if (payload is Map<String, dynamic>) {

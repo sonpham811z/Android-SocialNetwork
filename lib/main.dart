@@ -16,6 +16,7 @@ import 'providers/storyProvider.dart';
 import 'providers/themeProvider.dart';
 import 'providers/languageProvider.dart';
 import 'providers/userProfileProvider.dart';
+import 'providers/boardProvider.dart';
 import 'screens/authScreen/loginScreen.dart';
 import 'screens/authScreen/signupScreen.dart';
 import 'screens/appScreen/homeScreen.dart';
@@ -178,6 +179,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => StoryProvider()),
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => BoardProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

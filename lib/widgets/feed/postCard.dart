@@ -122,6 +122,14 @@ class PostCard extends StatelessWidget {
     );
   }
 
+  static IconData _visibilityIcon(String visibility) {
+    switch (visibility) {
+      case 'Friends': return Icons.people;
+      case 'Private': return Icons.lock;
+      default:        return Icons.public;
+    }
+  }
+
   // --- CÁC WIDGET CON ---
 
   Widget _buildPostHeader(BuildContext context) {
@@ -163,12 +171,24 @@ class PostCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  '${post.timestamp} • 🌍',
-                  style: TextStyle(
-                    color: AppTheme.slate500,
-                    fontSize: 12,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      post.timestamp,
+                      style: const TextStyle(
+                        color: AppTheme.slate500,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text('•', style: TextStyle(color: AppTheme.slate500, fontSize: 12)),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _visibilityIcon(post.visibility),
+                      size: 12,
+                      color: AppTheme.slate500,
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -118,7 +118,7 @@ class PostProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> createImagePost({required String content, required String imagePath}) async {
+  Future<bool> createImagePost({required String content, required String imagePath, String visibility = 'Public'}) async {
     final normalized = content.trim();
     if (normalized.isEmpty || imagePath.trim().isEmpty || _isSubmitting) {
       return false;
@@ -129,7 +129,7 @@ class PostProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final created = await _service.createImagePost(content: normalized, imagePath: imagePath);
+      final created = await _service.createImagePost(content: normalized, imagePath: imagePath, visibility: visibility);
       if (created != null) {
         _feedPosts.insert(0, created);
         _myPosts.insert(0, created);
@@ -145,7 +145,7 @@ class PostProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> createVoicePost({required String content, required String audioPath}) async {
+  Future<bool> createVoicePost({required String content, required String audioPath, String visibility = 'Public'}) async {
     final normalized = content.trim();
     if (normalized.isEmpty || audioPath.trim().isEmpty || _isSubmitting) {
       return false;
@@ -156,7 +156,7 @@ class PostProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final created = await _service.createVoicePost(content: normalized, audioPath: audioPath);
+      final created = await _service.createVoicePost(content: normalized, audioPath: audioPath, visibility: visibility);
       if (created != null) {
         _feedPosts.insert(0, created);
         _myPosts.insert(0, created);
@@ -317,12 +317,13 @@ class PostProvider with ChangeNotifier {
     }
   }
 
-  /// Toggle like trên comment — xử lý local (backend chưa có API).
-  void toggleCommentLike(String postId, String commentId) {
+  Future<void> toggleCommentLike(String postId, String commentId) async {
+    // Optimistic update
+    bool wasLiked = false;
     _updatePostById(postId, (post) {
       final nextComments = (post.commentsList ?? <Comment>[]).map((c) {
         if (c.id != commentId) return c;
-        final wasLiked = c.isLikedByCurrentUser;
+        wasLiked = c.isLikedByCurrentUser;
         return c.copyWith(
           isLikedByCurrentUser: !wasLiked,
           likesCount: wasLiked
@@ -333,6 +334,30 @@ class PostProvider with ChangeNotifier {
       return post.copyWith(commentsList: nextComments);
     });
     notifyListeners();
+
+    // Call API
+    try {
+      if (wasLiked) {
+        await _service.unlikeComment(commentId);
+      } else {
+        await _service.likeComment(commentId);
+      }
+    } catch (_) {
+      // Rollback on failure
+      _updatePostById(postId, (post) {
+        final rollback = (post.commentsList ?? <Comment>[]).map((c) {
+          if (c.id != commentId) return c;
+          return c.copyWith(
+            isLikedByCurrentUser: wasLiked,
+            likesCount: wasLiked
+                ? c.likesCount + 1
+                : (c.likesCount - 1).clamp(0, 1 << 31),
+          );
+        }).toList();
+        return post.copyWith(commentsList: rollback);
+      });
+      notifyListeners();
+    }
   }
 
   Future<bool> updatePost({

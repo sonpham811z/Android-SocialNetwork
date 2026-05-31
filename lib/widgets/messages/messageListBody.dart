@@ -5,6 +5,8 @@ import '../../models/chatModel.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/conversationProvider.dart';
 import '../../screens/appScreen/chatScreen.dart';
+import '../../screens/appScreen/createGroupScreen.dart';
+import '../../screens/appScreen/groupChatScreen.dart';
 
 class MessageListBody extends StatefulWidget {
   const MessageListBody({super.key});
@@ -30,16 +32,42 @@ class _MessageListBodyState extends State<MessageListBody> {
   }
 
   void _openChat(BuildContext context, ConversationListItem item) {
+    if (item.isGroup && item.conversationId != null) {
+      // Get member IDs from the conversation in provider
+      final conv = context
+          .read<ConversationProvider>()
+          .conversations
+          .firstWhere((c) => c.id == item.conversationId,
+              orElse: () => throw Exception('Conversation not found'));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => GroupChatScreen(
+            conversationId: item.conversationId!,
+            groupName: item.name,
+            memberIds: conv.members,
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            friendId: item.userId,
+            friendName: item.name,
+            friendAvatarUrl: item.avatarUrl,
+            conversationId: item.conversationId,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _openCreateGroup(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          friendId: item.userId,
-          friendName: item.name,
-          friendAvatarUrl: item.avatarUrl,
-          conversationId: item.conversationId,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
     );
   }
 
@@ -47,7 +75,7 @@ class _MessageListBodyState extends State<MessageListBody> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).colorScheme.onSurface;
-    final searchBg = isDark ? AppTheme.slate800.withOpacity(0.5) : AppTheme.slate100;
+    final searchBg = isDark ? AppTheme.slate800.withValues(alpha: 0.5) : AppTheme.slate100;
     final hintColor = isDark ? Colors.grey : AppTheme.slate400;
 
     return Consumer<ConversationProvider>(
@@ -81,7 +109,8 @@ class _MessageListBodyState extends State<MessageListBody> {
                   else
                     IconButton(
                       icon: Icon(Icons.edit_square, color: textColor),
-                      onPressed: () {},
+                      tooltip: 'Tạo nhóm chat',
+                      onPressed: () => _openCreateGroup(context),
                     ),
                 ],
               ),

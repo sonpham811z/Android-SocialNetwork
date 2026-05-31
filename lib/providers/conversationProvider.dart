@@ -24,6 +24,7 @@ class ConversationProvider with ChangeNotifier {
   bool get isInitialized => _isInitialized;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  List<ConversationModel> get conversations => List.unmodifiable(_conversations);
 
   /// Reset all cached state — call on logout / account switch.
   void clear() {
@@ -106,6 +107,18 @@ class ConversationProvider with ChangeNotifier {
     return conv;
   }
 
+  // Creates a group conversation and adds it to the local list
+  Future<ConversationModel> createGroup(
+      String groupName, List<String> memberIds) async {
+    final conv = await _messageService.createGroupConversation(groupName, memberIds);
+    if (!_conversations.any((c) => c.id == conv.id)) {
+      _conversations.insert(0, conv);
+      await _signalR.joinConversation(conv.id);
+    }
+    notifyListeners();
+    return conv;
+  }
+
   // Builds the sorted combined list: conversations first (by time), then friends without
   List<ConversationListItem> buildList() {
     final uid = _currentUserId ?? '';
@@ -114,32 +127,46 @@ class ConversationProvider with ChangeNotifier {
 
     // Map friendId → FriendshipModel for quick lookup
     final friendMap = {for (final f in _friends) f.friend.id: f};
-    
-    
-
 
     // Sort conversations newest-first
     final sorted = List.of(_conversations)
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
     for (final conv in sorted) {
-      final otherId = conv.members.firstWhere(
-        (m) => m != uid,
-        orElse: () => '',
-      );
-      final friend = friendMap[otherId];
-      friendsWithConvs.add(otherId);
+      if (conv.isOneToOne) {
+        final otherId = conv.members.firstWhere(
+          (m) => m != uid,
+          orElse: () => '',
+        );
+        final friend = friendMap[otherId];
+        friendsWithConvs.add(otherId);
 
-      items.add(ConversationListItem(
-        conversationId: conv.id,
-        userId: otherId,
-        name: friend?.friend.name ?? 'Unknown',
-        avatarUrl: friend?.friend.avatarUrl,
-        lastMessagePreview: conv.lastMessage?.content,
-        lastMessageTime: conv.lastMessage?.timestamp ?? conv.updatedAt,
-        isLastMessageByMe: uid.isNotEmpty &&
-            (conv.lastMessage?.senderId ?? '').toLowerCase() == uid.toLowerCase(),
-      ));
+        items.add(ConversationListItem(
+          conversationId: conv.id,
+          userId: otherId,
+          name: friend?.friend.name ?? 'Unknown',
+          avatarUrl: friend?.friend.avatarUrl,
+          lastMessagePreview: conv.lastMessage?.content,
+          lastMessageTime: conv.lastMessage?.timestamp ?? conv.updatedAt,
+          isLastMessageByMe: uid.isNotEmpty &&
+              (conv.lastMessage?.senderId ?? '').toLowerCase() ==
+                  uid.toLowerCase(),
+        ));
+      } else {
+        // Group conversation
+        items.add(ConversationListItem(
+          conversationId: conv.id,
+          userId: '',
+          name: conv.groupName ?? 'Group',
+          lastMessagePreview: conv.lastMessage?.content,
+          lastMessageTime: conv.lastMessage?.timestamp ?? conv.updatedAt,
+          isLastMessageByMe: uid.isNotEmpty &&
+              (conv.lastMessage?.senderId ?? '').toLowerCase() ==
+                  uid.toLowerCase(),
+          isGroup: true,
+          memberCount: conv.members.length,
+        ));
+      }
     }
 
     // Friends without any conversation — sorted by name

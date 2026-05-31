@@ -4,7 +4,7 @@ import '../../models/feedModel.dart';
 import 'commentItem.dart';
 import 'commentSkeleton.dart';
 
-class CommentList extends StatelessWidget {
+class CommentList extends StatefulWidget {
   final List<Comment> comments;
   final bool isLoading;
   final String? errorMessage;
@@ -16,7 +16,6 @@ class CommentList extends StatelessWidget {
   final void Function(String commentId)? onLike;
   final void Function(String userId)? onAvatarTap;
   final VoidCallback? onRetry;
-  /// Set of comment IDs that were just added (for fade-in animation)
   final Set<String> newCommentIds;
 
   const CommentList({
@@ -36,7 +35,29 @@ class CommentList extends StatelessWidget {
   });
 
   @override
+  State<CommentList> createState() => _CommentListState();
+}
+
+class _CommentListState extends State<CommentList> {
+  // Tracks which parent comment IDs have been expanded to show all replies
+  final Set<String> _expandedComments = {};
+
+  static const int _collapsedReplyLimit = 2;
+
+  @override
   Widget build(BuildContext context) {
+    final comments = widget.comments;
+    final isLoading = widget.isLoading;
+    final errorMessage = widget.errorMessage;
+    final currentUserId = widget.currentUserId;
+    final scrollController = widget.scrollController;
+    final onReply = widget.onReply;
+    final onEdit = widget.onEdit;
+    final onDelete = widget.onDelete;
+    final onLike = widget.onLike;
+    final onAvatarTap = widget.onAvatarTap;
+    final onRetry = widget.onRetry;
+    final newCommentIds = widget.newCommentIds;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Loading state
@@ -71,7 +92,7 @@ class CommentList extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                errorMessage!,
+                errorMessage,
                 style: TextStyle(
                   color: AppTheme.slate500,
                   fontSize: 12,
@@ -147,8 +168,9 @@ class CommentList extends StatelessWidget {
         comments.where((c) => c.parentCommentId == null).toList();
     final repliesMap = <String, List<Comment>>{};
     for (final c in comments) {
-      if (c.parentCommentId != null) {
-        repliesMap.putIfAbsent(c.parentCommentId!, () => []).add(c);
+      final parentId = c.parentCommentId;
+      if (parentId != null) {
+        repliesMap.putIfAbsent(parentId, () => []).add(c);
       }
     }
 
@@ -159,6 +181,12 @@ class CommentList extends StatelessWidget {
       itemBuilder: (context, index) {
         final parent = parentComments[index];
         final replies = repliesMap[parent.id] ?? [];
+
+        final isExpanded = _expandedComments.contains(parent.id);
+        final hiddenCount = replies.length - _collapsedReplyLimit;
+        final visibleReplies = (replies.length > _collapsedReplyLimit && !isExpanded)
+            ? replies.sublist(0, _collapsedReplyLimit)
+            : replies;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,8 +205,8 @@ class CommentList extends StatelessWidget {
               onLike: () => onLike?.call(parent.id),
               onAvatarTap: () => onAvatarTap?.call(parent.userId),
             ),
-            // Child comments (replies)
-            ...replies.map(
+            // Visible replies
+            ...visibleReplies.map(
               (reply) => CommentItem(
                 comment: reply,
                 isReply: true,
@@ -193,14 +221,22 @@ class CommentList extends StatelessWidget {
                 onAvatarTap: () => onAvatarTap?.call(reply.userId),
               ),
             ),
-            // "View more replies" hint
-            if (replies.length >= 3)
+            // Expand / collapse toggle
+            if (replies.length > _collapsedReplyLimit)
               Padding(
                 padding: const EdgeInsets.only(left: 56, bottom: 8),
                 child: GestureDetector(
-                  onTap: () {}, // TODO: pagination for replies
+                  onTap: () => setState(() {
+                    if (isExpanded) {
+                      _expandedComments.remove(parent.id);
+                    } else {
+                      _expandedComments.add(parent.id);
+                    }
+                  }),
                   child: Text(
-                    'Xem thêm câu trả lời',
+                    isExpanded
+                        ? 'Ẩn bớt câu trả lời'
+                        : 'Xem thêm $hiddenCount câu trả lời',
                     style: TextStyle(
                       color: AppTheme.violetPrimary,
                       fontSize: 12,

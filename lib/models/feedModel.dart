@@ -95,8 +95,8 @@ class Comment {
       timestamp: Post.formatTimestamp(asText(json['createdAt'])),
       createdAtRaw: createdAt,
       updatedAt: updatedAt,
-      likesCount: 0,
-      isLikedByCurrentUser: false,
+      likesCount: Post._toInt(json['likesCount'] ?? json['LikesCount']),
+      isLikedByCurrentUser: Post._toBool(json['isLikedByCurrentUser'] ?? json['IsLikedByCurrentUser']),
     );
   }
 
@@ -142,6 +142,8 @@ class Post {
   // Share reference
   final String? originalPostId;
   final Post? originalPost;
+  // Visibility: 'Public' | 'Friends' | 'Private'
+  final String visibility;
 
   Post({
     required this.id,
@@ -150,9 +152,9 @@ class Post {
     required this.content,
     required this.timestamp,
     this.image,
-    this.audioUrl, // [NEW]
-    this.waveform, // [NEW]
-    this.audioDuration, // [NEW]
+    this.audioUrl,
+    this.waveform,
+    this.audioDuration,
     required this.likes,
     required this.commentsCount,
     this.sharesCount = 0,
@@ -160,6 +162,7 @@ class Post {
     this.commentsList,
     this.originalPostId,
     this.originalPost,
+    this.visibility = 'Public',
   });
 
   factory Post.fromApi(Map<String, dynamic> json) {
@@ -212,6 +215,7 @@ class Post {
       commentsList: comments,
       originalPostId: originalPostId.isEmpty ? null : originalPostId,
       originalPost: originalPost,
+      visibility: _parseVisibility(json['visibility']),
     );
   }
 
@@ -223,6 +227,7 @@ class Post {
     bool? isLikedByCurrentUser,
     List<Comment>? commentsList,
     Post? originalPost,
+    String? visibility,
   }) {
     return Post(
       id: id,
@@ -241,7 +246,24 @@ class Post {
       commentsList: commentsList ?? this.commentsList,
       originalPostId: originalPostId,
       originalPost: originalPost ?? this.originalPost,
+      visibility: visibility ?? this.visibility,
     );
+  }
+
+  // Backend gửi visibility là int (0/1/2) hoặc string ('Public'/'Friends'/'Private')
+  static String _parseVisibility(dynamic raw) {
+    if (raw == null) return 'Public';
+    if (raw is int) {
+      switch (raw) {
+        case 1: return 'Friends';
+        case 2: return 'Private';
+        default: return 'Public';
+      }
+    }
+    final s = raw.toString();
+    if (s == '1' || s.toLowerCase() == 'friends') return 'Friends';
+    if (s == '2' || s.toLowerCase() == 'private') return 'Private';
+    return 'Public';
   }
 
   static int _toInt(dynamic value) {

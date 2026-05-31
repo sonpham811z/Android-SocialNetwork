@@ -138,12 +138,14 @@ class MessagePageResult {
 
 class ConversationListItem {
   final String? conversationId;
-  final String userId;
+  final String userId;       // for 1-1: the other user's ID; for group: empty
   final String name;
-  final String? avatarUrl;
+  final String? avatarUrl;   // for 1-1: friend avatar; for group: null (uses icon)
   final String? lastMessagePreview;
   final DateTime? lastMessageTime;
   final bool isLastMessageByMe;
+  final bool isGroup;
+  final int memberCount;
 
   const ConversationListItem({
     this.conversationId,
@@ -153,6 +155,8 @@ class ConversationListItem {
     this.lastMessagePreview,
     this.lastMessageTime,
     this.isLastMessageByMe = false,
+    this.isGroup = false,
+    this.memberCount = 0,
   });
 
   bool get hasConversation => conversationId != null;
