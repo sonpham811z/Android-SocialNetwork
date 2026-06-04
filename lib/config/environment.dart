@@ -41,6 +41,9 @@ class Environment {
   static const String googleClientId =
       '69350263890-k8a18rev98t4g3mjs1njnmq4qbjt3hsc.apps.googleusercontent.com';
 
+  // Agora – lấy từ https://console.agora.io → Project → App ID
+  static const String agoraAppId = String.fromEnvironment('AGORA_APP_ID', defaultValue: '');
+
   static const String loginEndpoint = '/auth/login';
   static const String registerEndpoint = '/auth/register';
   static const String googleLoginEndpoint = '/auth/google';

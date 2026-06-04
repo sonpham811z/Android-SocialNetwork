@@ -7,6 +7,7 @@ import '../../providers/authProvider.dart';
 import '../../providers/conversationProvider.dart';
 import '../../services/messageService.dart';
 import '../../services/signalRService.dart';
+import 'callScreen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String friendId;
@@ -183,6 +184,23 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  // ── Call ──────────────────────────────────────────────────────────────────
+
+  void _startCall({required bool isVideo}) {
+    if (_conversationId == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CallScreen(
+          conversationId:   _conversationId!,
+          calleeName:       widget.friendName,
+          calleeAvatarUrl:  widget.friendAvatarUrl,
+          isVideo:          isVideo,
+        ),
+      ),
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -249,11 +267,13 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       actions: [
         IconButton(
-            icon: const Icon(Icons.call, color: AppTheme.violetPrimary),
-            onPressed: () {}),
+          icon: const Icon(Icons.call, color: AppTheme.violetPrimary),
+          onPressed: _conversationId == null ? null : () => _startCall(isVideo: false),
+        ),
         IconButton(
-            icon: const Icon(Icons.videocam, color: AppTheme.violetPrimary),
-            onPressed: () {}),
+          icon: const Icon(Icons.videocam, color: AppTheme.violetPrimary),
+          onPressed: _conversationId == null ? null : () => _startCall(isVideo: true),
+        ),
       ],
     );
   }
