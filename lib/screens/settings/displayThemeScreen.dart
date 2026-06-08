@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/languageProvider.dart';
+import '../../providers/userSettingsProvider.dart';
 import 'languageScreen.dart';
 
 class DisplayThemeScreen extends StatefulWidget {
@@ -12,7 +13,6 @@ class DisplayThemeScreen extends StatefulWidget {
 }
 
 class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
-  String _selectedTheme = 'dark'; // 'light' | 'dark' | 'system'
   double _textSize = 16.0;
   bool _reduceMotion = false;
   bool _highContrast = false;
@@ -20,9 +20,31 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
   static const _fbBlue = Color(0xFF1877F2);
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserSettingsProvider>().loadSettings();
+    });
+  }
+
+  Future<void> _selectTheme(UserSettingsProvider provider, String theme) async {
+    final ok = await provider.updateTheme(theme);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Failed to save theme'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final t = context.watch<LanguageProvider>().translate;
+    final provider = context.watch<UserSettingsProvider>();
+    final selectedTheme = provider.settings.theme;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F10) : AppTheme.slate50,
@@ -41,6 +63,19 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          if (provider.isSaving)
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -48,7 +83,7 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
           // ===== THEME SELECTOR =====
           _buildSectionHeader(t('theme'), isDark),
           const SizedBox(height: 12),
-          _buildThemeSelector(isDark, t),
+          _buildThemeSelector(isDark, t, selectedTheme, provider),
 
           const SizedBox(height: 28),
 
@@ -106,7 +141,12 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
   }
 
   // ===== THEME SELECTOR (3 CARDS) =====
-  Widget _buildThemeSelector(bool isDark, String Function(String) t) {
+  Widget _buildThemeSelector(
+    bool isDark,
+    String Function(String) t,
+    String selectedTheme,
+    UserSettingsProvider provider,
+  ) {
     return Row(
       children: [
         _buildThemeCard(
@@ -116,6 +156,8 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
           gradientColors: [const Color(0xFFFFF9C4), const Color(0xFFFFE082)],
           iconColor: const Color(0xFFF9A825),
           isDark: isDark,
+          selectedTheme: selectedTheme,
+          onTap: () => _selectTheme(provider, 'light'),
         ),
         const SizedBox(width: 12),
         _buildThemeCard(
@@ -125,6 +167,8 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
           gradientColors: [const Color(0xFF1A237E), const Color(0xFF311B92)],
           iconColor: const Color(0xFF7C4DFF),
           isDark: isDark,
+          selectedTheme: selectedTheme,
+          onTap: () => _selectTheme(provider, 'dark'),
         ),
         const SizedBox(width: 12),
         _buildThemeCard(
@@ -134,6 +178,8 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
           gradientColors: [const Color(0xFF0D47A1), const Color(0xFF1565C0)],
           iconColor: const Color(0xFF42A5F5),
           isDark: isDark,
+          selectedTheme: selectedTheme,
+          onTap: () => _selectTheme(provider, 'system'),
         ),
       ],
     );
@@ -146,12 +192,14 @@ class _DisplayThemeScreenState extends State<DisplayThemeScreen> {
     required List<Color> gradientColors,
     required Color iconColor,
     required bool isDark,
+    required String selectedTheme,
+    required VoidCallback onTap,
   }) {
-    final isSelected = _selectedTheme == key;
+    final isSelected = selectedTheme == key;
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedTheme = key),
+        onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../config/environment.dart';
 import 'apiClient.dart';
 import '../models/userModel.dart';
+import '../models/userSettingsModel.dart';
 import '../utils/json_helpers.dart';
 
 class UserSearchResult {
@@ -235,6 +236,43 @@ return parsed.data;
       }
 
       throw Exception('Invalid upload response format.');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data.toString() ?? e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<UserSettings?> getMySettings() async {
+    try {
+      final response = await _apiClient.dio.get('$_userProfileBaseUrl/settings');
+      final body = asJsonMap(response.data);
+      if (body == null) throw Exception('Invalid settings response format.');
+
+      final dataRaw = body['data'] ?? body['Data'];
+      if (dataRaw == null) throw Exception('No settings data in response.');
+
+      return UserSettings.fromJson(asJsonMap(dataRaw) ?? <String, dynamic>{});
+    } on DioException catch (e) {
+      throw Exception(e.response?.data.toString() ?? e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<UserSettings?> updateSettings(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '$_userProfileBaseUrl/settings',
+        data: data,
+      );
+      final body = asJsonMap(response.data);
+      if (body == null) throw Exception('Invalid settings response format.');
+
+      final dataRaw = body['data'] ?? body['Data'];
+      if (dataRaw == null) throw Exception('No settings data in response.');
+
+      return UserSettings.fromJson(asJsonMap(dataRaw) ?? <String, dynamic>{});
     } on DioException catch (e) {
       throw Exception(e.response?.data.toString() ?? e.message);
     } catch (e) {

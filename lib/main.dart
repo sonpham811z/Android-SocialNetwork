@@ -16,6 +16,7 @@ import 'providers/storyProvider.dart';
 import 'providers/themeProvider.dart';
 import 'providers/languageProvider.dart';
 import 'providers/userProfileProvider.dart';
+import 'providers/userSettingsProvider.dart';
 import 'providers/boardProvider.dart';
 import 'screens/authScreen/loginScreen.dart';
 import 'screens/authScreen/signupScreen.dart';
@@ -174,6 +175,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProfileProvider()),
+        ChangeNotifierProvider(create: (_) => UserSettingsProvider()),
         ChangeNotifierProvider(create: (_) => FriendProvider()),
         ChangeNotifierProvider(create: (_) => PostProvider()),
         ChangeNotifierProvider(create: (_) => StoryProvider()),
