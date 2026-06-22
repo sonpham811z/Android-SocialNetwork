@@ -187,16 +187,21 @@ class _MessageListBodyState extends State<MessageListBody> {
 
     return ListView.builder(
       itemCount: items.length,
-      itemBuilder: (context, index) => _buildTile(context, items[index]),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return _buildTile(context, item, provider.unreadFor(item.conversationId));
+      },
     );
   }
 
-  Widget _buildTile(BuildContext context, ConversationListItem item) {
+  Widget _buildTile(
+      BuildContext context, ConversationListItem item, int unread) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).colorScheme.onSurface;
     final subtitleUnread = isDark ? Colors.white70 : AppTheme.slate700;
     final subtitleRead = isDark ? Colors.grey : AppTheme.slate500;
     final timeColor = isDark ? Colors.grey : AppTheme.slate500;
+    final hasUnread = unread > 0;
 
     final lastMsgText = item.lastMessagePreview != null
         ? (item.isLastMessageByMe
@@ -211,7 +216,7 @@ class _MessageListBodyState extends State<MessageListBody> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: () => _openChat(context, item),
-      leading: _buildAvatar(item),
+      leading: _buildAvatar(item, unread),
       title: Text(
         item.name,
         style: TextStyle(
@@ -224,24 +229,24 @@ class _MessageListBodyState extends State<MessageListBody> {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: item.hasConversation && !item.isLastMessageByMe
-              ? subtitleUnread
-              : subtitleRead,
-          fontWeight: item.hasConversation && !item.isLastMessageByMe
-              ? FontWeight.w500
-              : FontWeight.normal,
+          color: hasUnread ? subtitleUnread : subtitleRead,
+          fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
       trailing: timeText.isNotEmpty
           ? Text(
               timeText,
-              style: TextStyle(color: timeColor, fontSize: 12),
+              style: TextStyle(
+                color: hasUnread ? AppTheme.violetPrimary : timeColor,
+                fontSize: 12,
+                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+              ),
             )
           : null,
     );
   }
 
-  Widget _buildAvatar(ConversationListItem item) {
+  Widget _buildAvatar(ConversationListItem item, int unread) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatarBg = isDark ? AppTheme.slate800 : AppTheme.slate200;
     final avatarTextColor = isDark ? Colors.white : AppTheme.slate700;
@@ -268,18 +273,28 @@ class _MessageListBodyState extends State<MessageListBody> {
                   )
                 : null,
           ),
-          // Unread indicator dot — shown when conversation has messages not by me
-          if (item.hasConversation && item.lastMessagePreview != null && !item.isLastMessageByMe)
+          // Badge số tin chưa đọc của hội thoại này
+          if (unread > 0)
             Positioned(
-              right: 2,
-              top: 2,
+              right: 0,
+              top: 0,
               child: Container(
-                width: 12,
-                height: 12,
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                 decoration: BoxDecoration(
                   color: AppTheme.violetPrimary,
                   shape: BoxShape.circle,
                   border: Border.all(color: dotBorderColor, width: 2),
+                ),
+                child: Text(
+                  unread > 9 ? '9+' : '$unread',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    height: 1.0,
+                  ),
                 ),
               ),
             ),

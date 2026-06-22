@@ -2,9 +2,20 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/notificationModel.dart';
 import '../services/notificationService.dart';
+import '../services/userProfileService.dart';
+
+class _ActorInfo {
+  final String name;
+  final String? avatar;
+  const _ActorInfo(this.name, this.avatar);
+}
 
 class NotificationProvider extends ChangeNotifier {
   final _service = NotificationService();
+  final _profileService = UserProfileService();
+
+  // Cache hồ sơ actor để không gọi lại User service mỗi lần load
+  final Map<String, _ActorInfo> _actorCache = {};
 
   List<NotificationModel> _notifications = [];
   int _unreadCount = 0;
@@ -66,6 +77,48 @@ class NotificationProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+
+    // Hiển thị danh sách ngay, rồi nạp tên + avatar của actor (cập nhật sau khi xong)
+    unawaited(_enrichActors());
+  }
+
+  /// Lấy tên + avatar cho các actor chưa có trong cache, rồi gắn vào notifications.
+  Future<void> _enrichActors() async {
+    final missing = _notifications
+        .map((n) => n.actorId)
+        .where((id) => id.isNotEmpty && !_actorCache.containsKey(id))
+        .toSet();
+
+    if (missing.isNotEmpty) {
+      await Future.wait(missing.map((id) async {
+        try {
+          final u = await _profileService.getProfileByUserId(id);
+          if (u != null) {
+            final full = (u.fullName?.trim().isNotEmpty ?? false)
+                ? u.fullName!.trim()
+                : '${u.firstName} ${u.lastName}'.trim();
+            final name = full.isNotEmpty
+                ? full
+                : (u.username?.trim().isNotEmpty ?? false)
+                    ? u.username!.trim()
+                    : 'Người dùng';
+            _actorCache[id] = _ActorInfo(name, u.profilePictureUrl);
+          }
+        } catch (e) {
+          debugPrint('[NotificationProvider] enrich actor $id: $e');
+        }
+      }));
+    }
+
+    var changed = false;
+    _notifications = _notifications.map((n) {
+      final info = _actorCache[n.actorId];
+      if (info == null || n.actorName != null) return n;
+      changed = true;
+      return n.copyWith(actorName: info.name, actorAvatarUrl: info.avatar);
+    }).toList();
+
+    if (changed) notifyListeners();
   }
 
   Future<void> markAsRead(String id) async {
@@ -98,6 +151,8 @@ class NotificationProvider extends ChangeNotifier {
     _notifications = [notification, ..._notifications];
     _unreadCount++;
     notifyListeners();
+    // Nạp tên + avatar cho thông báo realtime vừa tới
+    unawaited(_enrichActors());
   }
 
   @override

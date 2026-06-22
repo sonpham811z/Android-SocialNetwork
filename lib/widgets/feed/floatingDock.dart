@@ -7,6 +7,7 @@ class FloatingDock extends StatelessWidget {
   final String? avatarUrl;
   final bool isVisible;
   final int notificationBadge;
+  final int messageBadge;
 
   const FloatingDock({
     super.key,
@@ -15,6 +16,7 @@ class FloatingDock extends StatelessWidget {
     this.avatarUrl,
     this.isVisible = true,
     this.notificationBadge = 0,
+    this.messageBadge = 0,
   });
 
   @override
@@ -85,7 +87,7 @@ class FloatingDock extends StatelessWidget {
                     const SizedBox(width: 2),
 
                     _buildDockItem(Icons.chat_bubble_outline_rounded, 3,
-                        badge: 3,
+                        badge: messageBadge > 0 ? messageBadge : null,
                         activeColor: activeIconColor,
                         inactiveColor: inactiveIconColor),
                     _buildDockItem(Icons.notifications_outlined, 4,

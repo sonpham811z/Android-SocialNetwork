@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/notificationModel.dart';
 import '../../providers/notificationProvider.dart';
+import 'userProfileScreen.dart';
+import 'postDetailScreen.dart';
+import 'chatScreen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -33,6 +36,50 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       context.read<NotificationProvider>().loadNotifications();
+    }
+  }
+
+  /// Đánh dấu đã đọc + điều hướng tới đúng nơi tuỳ loại thông báo.
+  void _handleTap(NotificationModel n) {
+    context.read<NotificationProvider>().markAsRead(n.id);
+
+    switch (n.type) {
+      // Kết bạn / theo dõi → mở profile của actor
+      case NotificationType.friendRequestSent:
+      case NotificationType.friendRequestAccepted:
+      case NotificationType.userFollowed:
+        if (n.actorId.isNotEmpty) {
+          UserProfileScreen.open(
+            context,
+            n.actorId,
+            displayName: n.actorName,
+            avatarUrl: n.actorAvatarUrl,
+          );
+        }
+        break;
+
+      // Like / comment → mở bài viết liên quan
+      case NotificationType.postLiked:
+      case NotificationType.commentCreated:
+        if (n.referenceId != null && n.referenceId!.isNotEmpty) {
+          PostDetailScreen.open(context, n.referenceId!);
+        }
+        break;
+
+      // Tin nhắn → mở hội thoại với người gửi
+      case NotificationType.messageReceived:
+        if (n.actorId.isNotEmpty) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ChatScreen(
+                friendId: n.actorId,
+                friendName: n.actorName ?? 'Tin nhắn',
+                friendAvatarUrl: n.actorAvatarUrl,
+              ),
+            ),
+          );
+        }
+        break;
     }
   }
 
@@ -140,7 +187,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 }
                 return _NotificationTile(
                   notification: items[index],
-                  onTap: () => provider.markAsRead(items[index].id),
+                  onTap: () => _handleTap(items[index]),
                 );
               },
             ),
@@ -174,34 +221,43 @@ class _NotificationTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon circle
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: notification.iconColor.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                notification.icon,
-                color: notification.iconColor,
-                size: 22,
-              ),
-            ),
+            // Avatar của actor + badge loại thông báo
+            _buildAvatar(),
             const SizedBox(width: 12),
             // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    notification.message,
-                    style: TextStyle(
-                      color: isUnread ? Colors.white : const Color(0xFFB0B3B8),
-                      fontSize: 14,
-                      fontWeight:
-                          isUnread ? FontWeight.w600 : FontWeight.normal,
-                      height: 1.4,
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        color:
+                            isUnread ? Colors.white : const Color(0xFFB0B3B8),
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                      children: [
+                        if (notification.actorName != null) ...[
+                          TextSpan(
+                            text: notification.actorName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: isUnread
+                                  ? Colors.white
+                                  : const Color(0xFFE4E6EB),
+                            ),
+                          ),
+                          const TextSpan(text: ' '),
+                        ],
+                        TextSpan(
+                          text: notification.message,
+                          style: TextStyle(
+                            fontWeight:
+                                isUnread ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -230,6 +286,57 @@ class _NotificationTile extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    final url = notification.actorAvatarUrl;
+    final hasAvatar = url != null && url.isNotEmpty;
+    final name = notification.actorName ?? '';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return SizedBox(
+      width: 52,
+      height: 52,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: const Color(0xFF3A3B3C),
+            backgroundImage: hasAvatar ? NetworkImage(url) : null,
+            child: hasAvatar
+                ? null
+                : Text(
+                    initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+          ),
+          // Badge loại thông báo
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: notification.iconColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF18191A), width: 2),
+              ),
+              child: Icon(
+                notification.icon,
+                color: Colors.white,
+                size: 12,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

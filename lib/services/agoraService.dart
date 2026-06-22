@@ -8,7 +8,7 @@ class AgoraService {
   final _storage = const FlutterSecureStorage();
 
   Future<AgoraTokenResponse> getCallToken(String channelName, {bool isVideo = false}) async {
-    final authToken = await _storage.read(key: 'auth_token');
+    final authToken = await _storage.read(key: 'accessToken');
     final uri = Uri.parse(
       '${Environment.messageServiceBaseUrl}/call/token'
       '?channelName=${Uri.encodeComponent(channelName)}&isVideo=$isVideo',

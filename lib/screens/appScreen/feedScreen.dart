@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
+import '../../providers/conversationProvider.dart';
 import '../../providers/notificationProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
@@ -203,6 +204,7 @@ class _FeedScreenState extends State<FeedScreen> {
     final feedPosts = postProvider.feedPosts;
     final notificationBadge =
         context.watch<NotificationProvider>().unreadCount;
+    final messageBadge = context.watch<ConversationProvider>().totalUnread;
 
     int getStackIndex(int tabIndex) {
       if (tabIndex == 0) return 0;
@@ -346,6 +348,7 @@ class _FeedScreenState extends State<FeedScreen> {
               avatarUrl: currentAvatar,
               isVisible: _isDockVisible,
               notificationBadge: notificationBadge,
+              messageBadge: messageBadge,
             ),
 
           if (_showCreateModal)

@@ -45,6 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isNotFriend = false;
 
   StreamSubscription<MessageModel>? _messageSub;
+  ConversationProvider? _convProvider;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.dispose();
     if (_conversationId != null) {
       _signalR.leaveConversation(_conversationId!);
+      _convProvider?.leaveConversation(_conversationId!);
     }
     super.dispose();
   }
@@ -85,8 +87,12 @@ class _ChatScreenState extends State<ChatScreen> {
       // Load message history
       await _loadMessages();
 
-      // Mark as read
+      // Mark as read (server + xoá badge unread ở dock)
       _signalR.markAsRead(_conversationId!);
+      if (mounted) {
+        _convProvider = context.read<ConversationProvider>();
+        _convProvider!.enterConversation(_conversationId!);
+      }
 
       // Subscribe to real-time incoming messages
       _messageSub = _signalR.messageStream

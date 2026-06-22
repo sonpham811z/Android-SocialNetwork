@@ -22,6 +22,10 @@ class NotificationModel {
   final DateTime createdAt;
   final DateTime? readAt;
 
+  // Enriched on the client from the User service (actor = người gây ra thông báo)
+  final String? actorName;
+  final String? actorAvatarUrl;
+
   const NotificationModel({
     required this.id,
     required this.recipientId,
@@ -32,9 +36,32 @@ class NotificationModel {
     this.referenceId,
     required this.createdAt,
     this.readAt,
+    this.actorName,
+    this.actorAvatarUrl,
   });
 
   bool get isRead => status == NotificationStatus.read;
+
+  NotificationModel copyWith({
+    NotificationStatus? status,
+    DateTime? readAt,
+    String? actorName,
+    String? actorAvatarUrl,
+  }) {
+    return NotificationModel(
+      id: id,
+      recipientId: recipientId,
+      actorId: actorId,
+      type: type,
+      status: status ?? this.status,
+      message: message,
+      referenceId: referenceId,
+      createdAt: createdAt,
+      readAt: readAt ?? this.readAt,
+      actorName: actorName ?? this.actorName,
+      actorAvatarUrl: actorAvatarUrl ?? this.actorAvatarUrl,
+    );
+  }
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(

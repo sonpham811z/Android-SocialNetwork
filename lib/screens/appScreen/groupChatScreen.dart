@@ -5,6 +5,7 @@ import '../../config/theme.dart';
 import '../../models/chatModel.dart';
 import '../../models/friendModel.dart';
 import '../../providers/authProvider.dart';
+import '../../providers/conversationProvider.dart';
 import '../../services/FriendService.dart';
 import '../../services/messageService.dart';
 import '../../services/signalRService.dart';
@@ -44,11 +45,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   String? _error;
 
   StreamSubscription<MessageModel>? _messageSub;
+  ConversationProvider? _convProvider;
 
   @override
   void initState() {
     super.initState();
     _currentUserId = context.read<AuthProvider>().user?.id;
+    _convProvider = context.read<ConversationProvider>();
     _scrollController.addListener(_onScroll);
     _init();
   }
@@ -59,6 +62,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _textController.dispose();
     _scrollController.dispose();
     _signalR.leaveConversation(widget.conversationId);
+    _convProvider?.leaveConversation(widget.conversationId);
     super.dispose();
   }
 
@@ -81,6 +85,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       await _loadMessages();
 
       _signalR.markAsRead(widget.conversationId);
+      _convProvider?.enterConversation(widget.conversationId);
 
       _messageSub = _signalR.messageStream
           .where((msg) => msg.conversationId == widget.conversationId)

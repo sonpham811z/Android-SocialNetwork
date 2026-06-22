@@ -35,6 +35,15 @@ class PostService {
     }
   }
 
+  Future<Post?> getPostById(String postId) async {
+    try {
+      final response = await _apiClient.dio.get('$_postBaseUrl/$postId');
+      return _extractSinglePost(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<PostListResult> getUserPosts(
     String userId, {
     int page = 1,

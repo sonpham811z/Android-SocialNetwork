@@ -19,12 +19,39 @@ class ConversationProvider with ChangeNotifier {
   List<FriendshipModel> _friends = [];
   String? _currentUserId;
 
+  // Unread tracking (client-side, live): convId → số tin chưa đọc
+  final Map<String, int> _unread = {};
+  // Hội thoại đang mở → tin tới không tính là chưa đọc
+  String? _activeConversationId;
+
   StreamSubscription<MessageModel>? _messageSubscription;
 
   bool get isInitialized => _isInitialized;
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<ConversationModel> get conversations => List.unmodifiable(_conversations);
+
+  /// Tổng số tin chưa đọc — dùng cho badge ở dock.
+  int get totalUnread => _unread.values.fold(0, (sum, v) => sum + v);
+
+  /// Số tin chưa đọc của một hội thoại cụ thể.
+  int unreadFor(String? conversationId) =>
+      conversationId == null ? 0 : (_unread[conversationId] ?? 0);
+
+  /// Mở hội thoại: đánh dấu đang xem + xoá unread + báo server đã đọc.
+  void enterConversation(String conversationId) {
+    _activeConversationId = conversationId;
+    if ((_unread[conversationId] ?? 0) != 0) {
+      _unread[conversationId] = 0;
+      notifyListeners();
+    }
+    _messageService.markAsRead(conversationId); // best-effort sync server
+  }
+
+  /// Rời hội thoại (gọi khi đóng màn hình chat).
+  void leaveConversation(String conversationId) {
+    if (_activeConversationId == conversationId) _activeConversationId = null;
+  }
 
   /// Reset all cached state — call on logout / account switch.
   void clear() {
@@ -35,6 +62,8 @@ class ConversationProvider with ChangeNotifier {
     _conversations = [];
     _friends = [];
     _currentUserId = null;
+    _unread.clear();
+    _activeConversationId = null;
     _error = null;
     notifyListeners();
   }
@@ -189,28 +218,37 @@ class ConversationProvider with ChangeNotifier {
   // ── Incoming message handler ──────────────────────────────────────────────
 
   void _onNewMessage(MessageModel message) {
+    // Tăng unread nếu tin từ người khác và mình không đang mở hội thoại đó
+    final fromOther = message.senderId.toLowerCase() !=
+        (_currentUserId ?? '').toLowerCase();
+    if (fromOther && message.conversationId != _activeConversationId) {
+      _unread[message.conversationId] =
+          (_unread[message.conversationId] ?? 0) + 1;
+    }
+
     final idx = _conversations.indexWhere((c) => c.id == message.conversationId);
-    if (idx == -1) return;
+    if (idx != -1) {
+      final conv = _conversations[idx];
 
-    final conv = _conversations[idx];
+      // Rebuild conversation with updated LastMessage and UpdatedAt
+      final updated = ConversationModel(
+        id: conv.id,
+        type: conv.type,
+        members: conv.members,
+        groupName: conv.groupName,
+        lastMessage: LastMessageModel(
+          messageId: message.id,
+          senderId: message.senderId,
+          content: message.content,
+          timestamp: message.timestamp,
+        ),
+        updatedAt: message.timestamp,
+      );
 
-    // Rebuild conversation with updated LastMessage and UpdatedAt
-    final updated = ConversationModel(
-      id: conv.id,
-      type: conv.type,
-      members: conv.members,
-      groupName: conv.groupName,
-      lastMessage: LastMessageModel(
-        messageId: message.id,
-        senderId: message.senderId,
-        content: message.content,
-        timestamp: message.timestamp,
-      ),
-      updatedAt: message.timestamp,
-    );
+      _conversations.removeAt(idx);
+      _conversations.insert(0, updated); // Move to top
+    }
 
-    _conversations.removeAt(idx);
-    _conversations.insert(0, updated); // Move to top
     notifyListeners();
   }
 
