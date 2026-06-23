@@ -128,6 +128,30 @@ class PostService {
     }
   }
 
+  Future<Post?> createVideoPost({
+    required String content,
+    required String videoPath,
+    String visibility = 'Public',
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'content': content,
+        'visibility': visibility,
+        'video': await MultipartFile.fromFile(videoPath),
+      });
+
+      final response = await _apiClient.dio.post(
+        '$_postBaseUrl/video',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+
+      return _extractSinglePost(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<Post?> sharePost({
     required String originalPostId,
     String content = '',

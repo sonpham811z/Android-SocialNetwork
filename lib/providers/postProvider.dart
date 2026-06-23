@@ -172,6 +172,33 @@ class PostProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> createVideoPost({required String content, required String videoPath, String visibility = 'Public'}) async {
+    final normalized = content.trim();
+    if (normalized.isEmpty || videoPath.trim().isEmpty || _isSubmitting) {
+      return false;
+    }
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final created = await _service.createVideoPost(content: normalized, videoPath: videoPath, visibility: visibility);
+      if (created != null) {
+        _feedPosts.insert(0, created);
+        _myPosts.insert(0, created);
+      }
+      _isSubmitting = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isSubmitting = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> sharePost(
     String originalPostId, {
     String content = '',

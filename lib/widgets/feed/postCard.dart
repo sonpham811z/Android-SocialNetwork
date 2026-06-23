@@ -9,6 +9,7 @@ import '../../providers/storyProvider.dart';
 import '../../services/signalRService.dart';
 import '../comment/commentBottomSheet.dart';
 import 'voicePlayer.dart';
+import 'videoPlayer.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
@@ -78,8 +79,16 @@ class PostCard extends StatelessWidget {
               ),
             ),
 
-          // 3. MEDIA CONTENT (Voice hoặc Ảnh)
-          if (post.audioUrl != null && post.waveform != null)
+          // 3. MEDIA CONTENT (Video / Voice / Ảnh)
+          if (post.videoUrl != null)
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+               child: PostVideoPlayer(
+                 videoUrl: post.videoUrl!,
+                 thumbnailUrl: post.videoThumbnailUrl,
+               ),
+             )
+          else if (post.audioUrl != null && post.waveform != null)
              Padding(
                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                child: VoicePlayer(
@@ -348,8 +357,39 @@ class PostCard extends StatelessWidget {
                 ),
               ),
             ),
+          // Video bài gốc (hiển thị thumbnail + nút play)
+          if (original.videoUrl != null)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (original.videoThumbnailUrl != null)
+                    Image.network(
+                      original.videoThumbnailUrl!,
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 160,
+                        color: Colors.black,
+                      ),
+                    )
+                  else
+                    Container(height: 160, width: double.infinity, color: Colors.black),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                  ),
+                ],
+              ),
+            )
           // Ảnh bài gốc
-          if (original.image != null)
+          else if (original.image != null)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
               child: Image.network(

@@ -70,6 +70,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
 
   String? _pickedImagePath;
   String? _pickedAudioPath;
+  String? _pickedVideoPath;
   String _visibility = 'Public';
 
   Future<void> _submitPost() async {
@@ -82,6 +83,12 @@ class _CreatePostModalState extends State<CreatePostModal> {
       success = await postProvider.createImagePost(
         content: content,
         imagePath: _pickedImagePath!,
+        visibility: _visibility,
+      );
+    } else if (_pickedVideoPath != null) {
+      success = await postProvider.createVideoPost(
+        content: content,
+        videoPath: _pickedVideoPath!,
         visibility: _visibility,
       );
     } else if (_pickedAudioPath != null) {
@@ -106,6 +113,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
     _textController.clear();
     _pickedImagePath = null;
     _pickedAudioPath = null;
+    _pickedVideoPath = null;
     widget.onClose();
   }
 
@@ -114,6 +122,17 @@ class _CreatePostModalState extends State<CreatePostModal> {
     if (picked == null || !mounted) return;
     setState(() {
       _pickedImagePath = picked.path;
+      _pickedAudioPath = null;
+      _pickedVideoPath = null;
+    });
+  }
+
+  Future<void> _pickVideo() async {
+    final picked = await _imagePicker.pickVideo(source: ImageSource.gallery);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _pickedVideoPath = picked.path;
+      _pickedImagePath = null;
       _pickedAudioPath = null;
     });
   }
@@ -127,6 +146,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
     setState(() {
       _pickedAudioPath = picked.files.single.path!;
       _pickedImagePath = null;
+      _pickedVideoPath = null;
     });
   }
 
@@ -210,7 +230,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
                             const SizedBox(height: 16),
                             _buildTextInput(textColor: textColor, hintColor: hintColor),
                             const SizedBox(height: 16),
-                            if (_pickedImagePath != null || _pickedAudioPath != null) ...[
+                            if (_pickedImagePath != null || _pickedAudioPath != null || _pickedVideoPath != null) ...[
                               _buildPickedMediaPreview(isDark: isDark),
                               const SizedBox(height: 12),
                             ],
@@ -367,6 +387,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
           ),
           const Spacer(),
           _buildAttachmentButton(Icons.image, Colors.green, onTap: _pickImage),
+          _buildAttachmentButton(Icons.videocam, Colors.redAccent, onTap: _pickVideo),
           _buildAttachmentButton(Icons.mic, Colors.deepPurpleAccent, onTap: _pickAudio),
           _buildAttachmentButton(Icons.people, Colors.blue),
           _buildAttachmentButton(Icons.emoji_emotions, Colors.yellow),
@@ -377,8 +398,18 @@ class _CreatePostModalState extends State<CreatePostModal> {
   }
 
   Widget _buildPickedMediaPreview({required bool isDark}) {
-    final label = _pickedImagePath != null ? 'Đã chọn ảnh' : 'Đã chọn audio';
-    final icon = _pickedImagePath != null ? Icons.image_outlined : Icons.audio_file_outlined;
+    final String label;
+    final IconData icon;
+    if (_pickedImagePath != null) {
+      label = 'Đã chọn ảnh';
+      icon = Icons.image_outlined;
+    } else if (_pickedVideoPath != null) {
+      label = 'Đã chọn video';
+      icon = Icons.videocam_outlined;
+    } else {
+      label = 'Đã chọn audio';
+      icon = Icons.audio_file_outlined;
+    }
     final previewBg = isDark ? AppTheme.slate800.withOpacity(0.6) : AppTheme.slate100;
     final previewBorder = isDark ? AppTheme.slate700 : AppTheme.slate200;
     final previewIconColor = isDark ? Colors.white70 : AppTheme.slate500;
@@ -403,6 +434,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
             onPressed: () => setState(() {
               _pickedImagePath = null;
               _pickedAudioPath = null;
+              _pickedVideoPath = null;
             }),
             icon: Icon(Icons.close, size: 16, color: previewIconColor),
           ),

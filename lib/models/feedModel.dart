@@ -134,6 +134,8 @@ class Post {
   final String? audioUrl; // [NEW] Link file âm thanh (Optional)
   final List<double>? waveform; // [NEW] Sóng âm (Optional)
   final String? audioDuration; // [NEW] Thời lượng (Optional, vd: "0:45")
+  final String? videoUrl; // [NEW] Link file video (Optional)
+  final String? videoThumbnailUrl; // [NEW] Ảnh thumbnail của video (Optional)
   final int likes;
   final int commentsCount;
   final int sharesCount;
@@ -155,6 +157,8 @@ class Post {
     this.audioUrl,
     this.waveform,
     this.audioDuration,
+    this.videoUrl,
+    this.videoThumbnailUrl,
     required this.likes,
     required this.commentsCount,
     this.sharesCount = 0,
@@ -208,6 +212,11 @@ class Post {
       audioDuration: asText(json['audioDuration']).isEmpty
           ? null
           : asText(json['audioDuration']),
+      videoUrl:
+          asText(json['videoUrl']).isEmpty ? null : asText(json['videoUrl']),
+      videoThumbnailUrl: asText(json['videoThumbnailUrl']).isEmpty
+          ? null
+          : asText(json['videoThumbnailUrl']),
       likes: _toInt(json['likesCount']),
       commentsCount: _toInt(json['commentsCount']),
       sharesCount: _toInt(json['sharesCount']),
@@ -239,6 +248,8 @@ class Post {
       audioUrl: audioUrl,
       waveform: waveform,
       audioDuration: audioDuration,
+      videoUrl: videoUrl,
+      videoThumbnailUrl: videoThumbnailUrl,
       likes: likes ?? this.likes,
       commentsCount: commentsCount ?? this.commentsCount,
       sharesCount: sharesCount ?? this.sharesCount,
