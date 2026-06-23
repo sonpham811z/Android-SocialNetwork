@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/chatModel.dart';
@@ -32,12 +33,14 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollController = ScrollController();
   final _messageService = MessageService();
   final _signalR = SignalRService();
+  final _imagePicker = ImagePicker();
 
   String? _conversationId;
   String? _currentUserId;
   List<MessageModel> _messages = [];
   bool _isInitializing = true;
   bool _isSending = false;
+  bool _isSendingImage = false;
   bool _hasMore = false;
   String? _nextCursor;
   bool _isLoadingMore = false;
@@ -188,6 +191,65 @@ class _ChatScreenState extends State<ChatScreen> {
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
+  }
+
+  // ── Send image ──────────────────────────────────────────────────────────────
+
+  Future<void> _pickAndSendImage() async {
+    if (_conversationId == null || _isSendingImage) return;
+
+    final XFile? picked;
+    try {
+      picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1920,
+      );
+    } catch (e) {
+      if (mounted) _showError('Không mở được thư viện ảnh: $e');
+      return;
+    }
+    if (picked == null) return;
+
+    setState(() => _isSendingImage = true);
+    try {
+      final url = await _messageService.uploadImage(picked.path);
+      await _signalR.sendMessage(_conversationId!, url, type: 1); // 1 = Image
+    } catch (e) {
+      if (mounted) {
+        _showError('Gửi ảnh thất bại: ${e.toString().replaceFirst('Exception: ', '')}');
+      }
+    } finally {
+      if (mounted) setState(() => _isSendingImage = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
+  }
+
+  /// Opens an image attachment full-screen with pinch-to-zoom.
+  void _openImageViewer(String url) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.network(url, fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // ── Call ──────────────────────────────────────────────────────────────────
@@ -459,6 +521,44 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Widget _buildImageBubble(String url, BorderRadius radius) {
+    return GestureDetector(
+      onTap: () => _openImageViewer(url),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.62,
+            maxHeight: 280,
+          ),
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return Container(
+                width: 180,
+                height: 180,
+                color: AppTheme.slate800.withValues(alpha: 0.3),
+                alignment: Alignment.center,
+                child: const CircularProgressIndicator(
+                    strokeWidth: 2, color: AppTheme.violetPrimary),
+              );
+            },
+            errorBuilder: (context, error, stack) => Container(
+              width: 180,
+              height: 120,
+              color: AppTheme.slate800.withValues(alpha: 0.3),
+              alignment: Alignment.center,
+              child: const Icon(Icons.broken_image_outlined,
+                  color: Colors.grey, size: 36),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBubble(MessageModel message) {
     final isMe = message.senderId == _currentUserId;
     final time = formatMessageTime(message.timestamp);
@@ -469,6 +569,14 @@ class _ChatScreenState extends State<ChatScreen> {
     final receivedTextColor = isDark ? Colors.white : AppTheme.slate900;
     final timeColor = isDark ? Colors.grey : AppTheme.slate500;
 
+    final isImage = message.type == 1;
+    final bubbleRadius = BorderRadius.only(
+      topLeft: const Radius.circular(20),
+      topRight: const Radius.circular(20),
+      bottomLeft: Radius.circular(isMe ? 20 : 4),
+      bottomRight: Radius.circular(isMe ? 4 : 20),
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Align(
@@ -477,29 +585,25 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment:
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.72,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isMe
-                    ? AppTheme.violetPrimary
-                    : receivedBubbleBg,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isMe ? 20 : 4),
-                  bottomRight: Radius.circular(isMe ? 4 : 20),
+            if (isImage)
+              _buildImageBubble(message.content, bubbleRadius)
+            else
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.72,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isMe ? AppTheme.violetPrimary : receivedBubbleBg,
+                  borderRadius: bubbleRadius,
+                ),
+                child: Text(
+                  message.content,
+                  style: TextStyle(
+                      color: isMe ? Colors.white : receivedTextColor,
+                      fontSize: 15),
                 ),
               ),
-              child: Text(
-                message.content,
-                style: TextStyle(
-                    color: isMe ? Colors.white : receivedTextColor,
-                    fontSize: 15),
-              ),
-            ),
             const SizedBox(height: 3),
             Text(
               time,
@@ -528,8 +632,17 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Row(
           children: [
             IconButton(
-              icon: Icon(Icons.add_circle, color: AppTheme.violetPrimary),
-              onPressed: () {},
+              icon: _isSendingImage
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppTheme.violetPrimary),
+                    )
+                  : const Icon(Icons.add_photo_alternate,
+                      color: AppTheme.violetPrimary),
+              tooltip: 'Gửi ảnh',
+              onPressed: _isSendingImage ? null : _pickAndSendImage,
             ),
             Expanded(
               child: Container(

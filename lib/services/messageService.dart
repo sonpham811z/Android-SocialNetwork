@@ -89,4 +89,25 @@ class MessageService {
       // Mark as read is best-effort
     }
   }
+
+  /// Uploads a chat image to Cloudinary and returns its public URL.
+  /// The caller then sends a message with type=1 (Image) whose content is this URL.
+  Future<String> uploadImage(String filePath) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath),
+      });
+      final response = await _apiClient.dio.post(
+        '${Environment.messageServiceBaseUrl}/messages/upload-image',
+        data: formData,
+      );
+      final body = asJsonMap(response.data) ?? {};
+      final data = asJsonMap(body['data'] ?? body['Data']) ?? {};
+      final url = asText(data['url'] ?? data['Url']);
+      if (url.isEmpty) throw Exception('Upload ảnh thất bại.');
+      return url;
+    } catch (e) {
+      throw _mapError(e);
+    }
+  }
 }

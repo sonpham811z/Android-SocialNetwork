@@ -41,12 +41,14 @@ class LastMessageModel {
   final String messageId;
   final String senderId;
   final String content;
+  final int type; // 0=Text, 1=Image, 2=File, 3=System
   final DateTime timestamp;
 
   const LastMessageModel({
     required this.messageId,
     required this.senderId,
     required this.content,
+    this.type = 0,
     required this.timestamp,
   });
 
@@ -55,6 +57,7 @@ class LastMessageModel {
       messageId: asText(json['messageId'] ?? json['MessageId']),
       senderId: asText(json['senderId'] ?? json['SenderId']),
       content: asText(json['content'] ?? json['Content']),
+      type: asInt(json['type'] ?? json['Type']),
       timestamp: asDateTime(json['timestamp'] ?? json['Timestamp']) ?? DateTime.now(),
     );
   }

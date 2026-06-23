@@ -80,7 +80,7 @@ class ConversationProvider with ChangeNotifier {
     _friends = [];
     _error = null;
 
-    _currentUserId = currentUserId;
+    _currentUserId = currentUserId.toLowerCase();
     _isLoading = true;
     notifyListeners();
 
@@ -119,7 +119,7 @@ class ConversationProvider with ChangeNotifier {
   Future<ConversationModel> openConversation(String friendId) async {
     // Check if we already have it locally
     final existing = _conversations.where((c) {
-      return c.isOneToOne && c.members.contains(friendId);
+      return c.isOneToOne && c.members.any((m) => m.toLowerCase() == friendId.toLowerCase());
     }).firstOrNull;
     if (existing != null) return existing;
 
@@ -154,8 +154,16 @@ class ConversationProvider with ChangeNotifier {
     final items = <ConversationListItem>[];
     final friendsWithConvs = <String>{};
 
-    // Map friendId → FriendshipModel for quick lookup
-    final friendMap = {for (final f in _friends) f.friend.id: f};
+    // Map friendId (lowercase) → FriendshipModel for quick lookup
+    final friendMap = {for (final f in _friends) f.friend.id.toLowerCase(): f};
+
+    // Preview text for the conversation list: image messages show a placeholder
+    // instead of the raw Cloudinary URL.
+    String? previewOf(LastMessageModel? last) {
+      if (last == null) return null;
+      if (last.type == 1) return '📷 Hình ảnh';
+      return last.content;
+    }
 
     // Sort conversations newest-first
     final sorted = List.of(_conversations)
@@ -164,18 +172,19 @@ class ConversationProvider with ChangeNotifier {
     for (final conv in sorted) {
       if (conv.isOneToOne) {
         final otherId = conv.members.firstWhere(
-          (m) => m != uid,
+          (m) => m.toLowerCase() != uid.toLowerCase(),
           orElse: () => '',
         );
-        final friend = friendMap[otherId];
-        friendsWithConvs.add(otherId);
+        final otherIdLower = otherId.toLowerCase();
+        final friend = friendMap[otherIdLower];
+        friendsWithConvs.add(otherIdLower);
 
         items.add(ConversationListItem(
           conversationId: conv.id,
           userId: otherId,
           name: friend?.friend.name ?? 'Unknown',
           avatarUrl: friend?.friend.avatarUrl,
-          lastMessagePreview: conv.lastMessage?.content,
+          lastMessagePreview: previewOf(conv.lastMessage),
           lastMessageTime: conv.lastMessage?.timestamp ?? conv.updatedAt,
           isLastMessageByMe: uid.isNotEmpty &&
               (conv.lastMessage?.senderId ?? '').toLowerCase() ==
@@ -187,7 +196,7 @@ class ConversationProvider with ChangeNotifier {
           conversationId: conv.id,
           userId: '',
           name: conv.groupName ?? 'Group',
-          lastMessagePreview: conv.lastMessage?.content,
+          lastMessagePreview: previewOf(conv.lastMessage),
           lastMessageTime: conv.lastMessage?.timestamp ?? conv.updatedAt,
           isLastMessageByMe: uid.isNotEmpty &&
               (conv.lastMessage?.senderId ?? '').toLowerCase() ==
@@ -200,7 +209,7 @@ class ConversationProvider with ChangeNotifier {
 
     // Friends without any conversation — sorted by name
     final noConv = _friends
-        .where((f) => !friendsWithConvs.contains(f.friend.id))
+        .where((f) => !friendsWithConvs.contains(f.friend.id.toLowerCase()))
         .toList()
       ..sort((a, b) => a.friend.name.compareTo(b.friend.name));
 
@@ -240,6 +249,7 @@ class ConversationProvider with ChangeNotifier {
           messageId: message.id,
           senderId: message.senderId,
           content: message.content,
+          type: message.type,
           timestamp: message.timestamp,
         ),
         updatedAt: message.timestamp,

@@ -50,7 +50,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   @override
   void initState() {
     super.initState();
-    _currentUserId = context.read<AuthProvider>().user?.id;
+    _currentUserId = context.read<AuthProvider>().user?.id.toLowerCase();
     _convProvider = context.read<ConversationProvider>();
     _scrollController.addListener(_onScroll);
     _init();
@@ -73,7 +73,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       final friends = friendsResult.data?.items ?? [];
       final map = <String, UserLite>{};
       for (final f in friends) {
-        map[f.friend.id] = f.friend;
+        map[f.friend.id.toLowerCase()] = f.friend;
       }
       if (mounted) setState(() => _memberMap = map);
 
@@ -330,7 +330,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  bool isMe(MessageModel msg) => msg.senderId == _currentUserId;
+  bool isMe(MessageModel msg) => msg.senderId.toLowerCase() == _currentUserId;
 
   Widget _buildBubble(
       MessageModel message, bool showSenderInfo, bool isDark) {
@@ -340,7 +340,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         isDark ? AppTheme.slate800.withValues(alpha: 0.7) : AppTheme.slate200;
     final receivedTextColor = isDark ? Colors.white : AppTheme.slate900;
     final timeColor = isDark ? Colors.grey : AppTheme.slate500;
-    final sender = _memberMap[message.senderId];
+    final sender = _memberMap[message.senderId.toLowerCase()];
     final senderName = sender?.name ?? 'Unknown';
     final senderAvatar = sender?.avatarUrl;
     final avatarBg = isDark ? AppTheme.slate700 : AppTheme.slate300;

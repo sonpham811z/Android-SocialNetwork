@@ -90,12 +90,17 @@ class SignalRService {
     }
   }
 
-  Future<void> sendMessage(String conversationId, String content) async {
+  /// Sends a message. [type] follows MessageType: 0=Text, 1=Image, 2=File, 3=System.
+  Future<void> sendMessage(
+    String conversationId,
+    String content, {
+    int type = 0,
+  }) async {
     if (!isConnected) {
       throw Exception('Not connected to messaging server.');
     }
     await _connection!.invoke('SendMessage', args: [
-      {'conversationId': conversationId, 'content': content, 'type': 0},
+      {'conversationId': conversationId, 'content': content, 'type': type},
     ]);
   }
 

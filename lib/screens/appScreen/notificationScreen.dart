@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/theme.dart';
 import '../../models/notificationModel.dart';
 import '../../providers/notificationProvider.dart';
 import 'userProfileScreen.dart';
@@ -85,22 +86,29 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF0F0F10) : AppTheme.slate50;
+    final appBarBg = isDark ? const Color(0xFF0F0F10) : Colors.white;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final dividerColor =
+        isDark ? Colors.white.withValues(alpha: 0.06) : AppTheme.slate200;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF18191A),
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Thông báo',
           style: TextStyle(
-            color: Colors.white,
+            color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
         ),
-        backgroundColor: const Color(0xFF242526),
+        backgroundColor: appBarBg,
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.5),
-          child: Container(height: 0.5, color: Colors.grey[800]),
+          child: Container(height: 0.5, color: dividerColor),
         ),
         actions: [
           Consumer<NotificationProvider>(
@@ -110,7 +118,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 onPressed: provider.isLoading ? null : provider.markAllAsRead,
                 child: const Text(
                   'Đọc tất cả',
-                  style: TextStyle(color: Color(0xFF2D88FF), fontSize: 14),
+                  style: TextStyle(
+                      color: AppTheme.violetPrimary, fontSize: 14),
                 ),
               );
             },
@@ -121,7 +130,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         builder: (context, provider, _) {
           if (provider.isLoading && provider.notifications.isEmpty) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF2D88FF)),
+              child: CircularProgressIndicator(color: AppTheme.violetPrimary),
             );
           }
 
@@ -157,7 +166,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   SizedBox(height: 12),
                   Text(
                     'Chưa có thông báo nào',
-                    style: TextStyle(color: Color(0xFFB0B3B8), fontSize: 15),
+                    style: TextStyle(color: Colors.grey, fontSize: 15),
                   ),
                 ],
               ),
@@ -166,8 +175,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
           final items = provider.notifications;
           return RefreshIndicator(
-            color: const Color(0xFF2D88FF),
-            backgroundColor: const Color(0xFF242526),
+            color: AppTheme.violetPrimary,
+            backgroundColor: appBarBg,
             onRefresh: () => provider.loadNotifications(refresh: true),
             child: ListView.builder(
               controller: _scrollController,
@@ -179,7 +188,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xFF2D88FF),
+                        color: AppTheme.violetPrimary,
                         strokeWidth: 2,
                       ),
                     ),
@@ -210,19 +219,23 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUnread = !notification.isRead;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final mutedColor = isDark ? AppTheme.slate400 : AppTheme.slate500;
+    final scaffoldBg = isDark ? const Color(0xFF0F0F10) : AppTheme.slate50;
 
     return InkWell(
       onTap: onTap,
       child: Container(
         color: isUnread
-            ? const Color(0xFF2D88FF).withValues(alpha: 0.06)
+            ? AppTheme.violetPrimary.withValues(alpha: 0.08)
             : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Avatar của actor + badge loại thông báo
-            _buildAvatar(),
+            _buildAvatar(isDark, scaffoldBg),
             const SizedBox(width: 12),
             // Content
             Expanded(
@@ -232,8 +245,7 @@ class _NotificationTile extends StatelessWidget {
                   RichText(
                     text: TextSpan(
                       style: TextStyle(
-                        color:
-                            isUnread ? Colors.white : const Color(0xFFB0B3B8),
+                        color: isUnread ? textColor : mutedColor,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -243,9 +255,7 @@ class _NotificationTile extends StatelessWidget {
                             text: notification.actorName,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: isUnread
-                                  ? Colors.white
-                                  : const Color(0xFFE4E6EB),
+                              color: textColor,
                             ),
                           ),
                           const TextSpan(text: ' '),
@@ -264,9 +274,7 @@ class _NotificationTile extends StatelessWidget {
                   Text(
                     notification.timeAgo,
                     style: TextStyle(
-                      color: isUnread
-                          ? const Color(0xFF2D88FF)
-                          : const Color(0xFFB0B3B8),
+                      color: isUnread ? AppTheme.violetPrimary : mutedColor,
                       fontSize: 12,
                     ),
                   ),
@@ -280,7 +288,7 @@ class _NotificationTile extends StatelessWidget {
                 height: 8,
                 margin: const EdgeInsets.only(top: 6, left: 8),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF2D88FF),
+                  color: AppTheme.violetPrimary,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -290,11 +298,12 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(bool isDark, Color borderColor) {
     final url = notification.actorAvatarUrl;
     final hasAvatar = url != null && url.isNotEmpty;
     final name = notification.actorName ?? '';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final avatarBg = isDark ? AppTheme.slate800 : AppTheme.slate200;
 
     return SizedBox(
       width: 52,
@@ -304,14 +313,14 @@ class _NotificationTile extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: const Color(0xFF3A3B3C),
+            backgroundColor: avatarBg,
             backgroundImage: hasAvatar ? NetworkImage(url) : null,
             child: hasAvatar
                 ? null
                 : Text(
                     initial,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppTheme.slate700,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -327,7 +336,7 @@ class _NotificationTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: notification.iconColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF18191A), width: 2),
+                border: Border.all(color: borderColor, width: 2),
               ),
               child: Icon(
                 notification.icon,
