@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -252,7 +253,8 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                     },
                   ),
                   const SizedBox(width: 8),
-                  _buildIconOnlyButton(isDark, Icons.share_outlined, onTap: () {}),
+                  _buildIconOnlyButton(isDark, Icons.share_outlined,
+                      onTap: () => _shareProfile(profile)),
                   const SizedBox(width: 8),
                   _buildIconOnlyButton(
                     isDark,
@@ -906,6 +908,24 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
     );
   }
 
+  Future<void> _shareProfile(User profile) async {
+    final username = (profile.username ?? '').trim();
+    // Liên kết chia sẻ trang cá nhân (deep link app). Có thể thay bằng URL web khi có.
+    final link = 'socialapp://user/${profile.id}';
+    final shareText = username.isNotEmpty
+        ? 'Xem trang cá nhân của @$username trên Social Network: $link'
+        : 'Xem trang cá nhân của ${profile.displayName} trên Social Network: $link';
+
+    await Clipboard.setData(ClipboardData(text: shareText));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã sao chép liên kết trang cá nhân'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _openEditProfileSheet(User profile) async {
     final updated = await showModalBottomSheet<bool>(
       context: context,
@@ -1261,6 +1281,12 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               label: const Text('Cover'),
             ),
           ),
+          const SizedBox(width: 6),
+          IconButton(
+            tooltip: 'Xóa ảnh bìa',
+            onPressed: _isUploadingImage ? null : _deleteCoverPhoto,
+            icon: const Icon(Icons.hide_image_outlined, color: Colors.redAccent),
+          ),
           if (_isUploadingImage) ...[
             const SizedBox(width: 10),
             SizedBox(
@@ -1355,6 +1381,22 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     setState(() {
       _dateOfBirth = selected;
     });
+  }
+
+  Future<void> _deleteCoverPhoto() async {
+    setState(() => _isUploadingImage = true);
+    final provider = context.read<UserProfileProvider>();
+    final success = await provider.deleteCoverPhoto();
+
+    if (!mounted) return;
+    setState(() => _isUploadingImage = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success ? 'Đã xóa ảnh bìa.' : (provider.error ?? 'Xóa ảnh bìa thất bại.')),
+        backgroundColor: success ? null : Colors.redAccent,
+      ),
+    );
   }
 
   Future<void> _pickAndUploadImage({required bool isAvatar}) async {

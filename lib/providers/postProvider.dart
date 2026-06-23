@@ -416,6 +416,39 @@ class PostProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> updatePostMedia({
+    required String postId,
+    required String action,
+    String? mediaType,
+    String? filePath,
+  }) async {
+    if (_isSubmitting) return false;
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final updated = await _service.updatePostMedia(
+        postId: postId,
+        action: action,
+        mediaType: mediaType,
+        filePath: filePath,
+      );
+      if (updated != null) {
+        _replacePost(updated);
+      }
+      _isSubmitting = false;
+      notifyListeners();
+      return updated != null;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _isSubmitting = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> deletePost(String postId) async {
     if (_isSubmitting) {
       return false;

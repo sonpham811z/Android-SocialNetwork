@@ -19,6 +19,42 @@ const Map<String, Map<String, String>> translations = {
   'log_out_confirm': {'en': 'Are you sure you want to log out of your account?', 'vi': 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?'},
   'cancel': {'en': 'Cancel', 'vi': 'Hủy'},
   'feature_coming_soon': {'en': 'Feature coming soon!', 'vi': 'Tính năng sắp ra mắt!'},
+  'privacy_security': {'en': 'Privacy & Security', 'vi': 'Quyền riêng tư & Bảo mật'},
+
+  // ═══════════════════════════════════════════════
+  // PRIVACY SETTINGS SCREEN
+  // ═══════════════════════════════════════════════
+  'privacy_settings': {'en': 'Privacy Settings', 'vi': 'Cài đặt quyền riêng tư'},
+  'profile_visibility': {'en': 'Profile Visibility', 'vi': 'Hiển thị trang cá nhân'},
+  'profile_visibility_desc': {'en': 'Who can view your profile', 'vi': 'Ai có thể xem trang cá nhân của bạn'},
+  'who_can_see_email': {'en': 'Who Can See Email', 'vi': 'Ai có thể xem email'},
+  'who_can_see_email_desc': {'en': 'Control who sees your email address', 'vi': 'Kiểm soát ai thấy địa chỉ email của bạn'},
+  'who_can_see_friends': {'en': 'Who Can See Friends', 'vi': 'Ai có thể xem bạn bè'},
+  'who_can_see_friends_desc': {'en': 'Control who sees your friends list', 'vi': 'Kiểm soát ai thấy danh sách bạn bè'},
+  'who_can_send_request': {'en': 'Who Can Send Friend Request', 'vi': 'Ai có thể gửi lời mời kết bạn'},
+  'who_can_send_request_desc': {'en': 'Control who can add you as a friend', 'vi': 'Kiểm soát ai có thể kết bạn với bạn'},
+  'visibility_public': {'en': 'Public', 'vi': 'Công khai'},
+  'visibility_friends': {'en': 'Friends', 'vi': 'Bạn bè'},
+  'visibility_only_me': {'en': 'Only Me', 'vi': 'Chỉ mình tôi'},
+  'visibility_everyone': {'en': 'Everyone', 'vi': 'Mọi người'},
+  'privacy_saved': {'en': 'Privacy settings saved', 'vi': 'Đã lưu cài đặt quyền riêng tư'},
+  'save_failed': {'en': 'Failed to save', 'vi': 'Lưu thất bại'},
+
+  // ═══════════════════════════════════════════════
+  // DELETE ACCOUNT
+  // ═══════════════════════════════════════════════
+  'danger_zone': {'en': 'Danger Zone', 'vi': 'Vùng nguy hiểm'},
+  'delete_account': {'en': 'Delete Account', 'vi': 'Xóa tài khoản'},
+  'delete_account_title': {'en': 'Delete your account?', 'vi': 'Xóa tài khoản của bạn?'},
+  'delete_account_confirm': {
+    'en': 'Your account will be deactivated and your profile hidden. This action cannot be easily undone. Continue?',
+    'vi': 'Tài khoản của bạn sẽ bị vô hiệu hóa và hồ sơ bị ẩn. Thao tác này không thể dễ dàng hoàn tác. Tiếp tục?'
+  },
+  'delete_account_success': {'en': 'Account deleted', 'vi': 'Đã xóa tài khoản'},
+  'delete_account_failed': {'en': 'Failed to delete account', 'vi': 'Không thể xóa tài khoản'},
+  'delete': {'en': 'Delete', 'vi': 'Xóa'},
+  'remove_cover_photo': {'en': 'Remove cover photo', 'vi': 'Xóa ảnh bìa'},
+  'cover_photo_removed': {'en': 'Cover photo removed', 'vi': 'Đã xóa ảnh bìa'},
 
   // ═══════════════════════════════════════════════
   // LANGUAGE SCREEN

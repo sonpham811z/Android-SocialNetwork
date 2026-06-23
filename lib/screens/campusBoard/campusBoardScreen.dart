@@ -539,7 +539,7 @@ class _BoardPostCard extends StatelessWidget {
     return Material(
       color: isDark ? const Color(0xFF0F0F10) : Colors.white,
       child: InkWell(
-        onTap: () {},
+        onTap: () => _showDetailSheet(context),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
@@ -628,6 +628,107 @@ class _BoardPostCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showDetailSheet(BuildContext context) {
+    final tag = _tagConfig(post.tag);
+    final textColor = isDark ? Colors.white : AppTheme.slate900;
+    final subColor = isDark ? AppTheme.slate400 : AppTheme.slate500;
+    final sheetBg = isDark ? const Color(0xFF18181B) : Colors.white;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: sheetBg,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: subColor.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  // Tag + time
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: tag.color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(tag.icon, size: 11, color: tag.color),
+                            const SizedBox(width: 4),
+                            Text('#${tag.label}',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: tag.color)),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        post.isAnonymous ? 'Ẩn danh' : (post.authorName ?? ''),
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: textColor),
+                      ),
+                      Text('  ·  ${post.timeAgo}',
+                          style: TextStyle(fontSize: 11, color: subColor)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Full content (không cắt dòng)
+                  Text(
+                    post.content,
+                    style: TextStyle(
+                        fontSize: 15, height: 1.6, color: textColor),
+                  ),
+                  const SizedBox(height: 20),
+                  // Vote row
+                  Row(
+                    children: [
+                      _voteBtn('up', Icons.arrow_upward_rounded,
+                          Colors.orangeAccent),
+                      const SizedBox(width: 6),
+                      _scoreText(post.netVotes, subColor),
+                      const SizedBox(width: 6),
+                      _voteBtn('down', Icons.arrow_downward_rounded,
+                          const Color(0xFF2D88FF)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

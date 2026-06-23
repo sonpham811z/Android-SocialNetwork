@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../friends/friends_screen.dart';
 import '../campusBoard/campusBoardScreen.dart';
 import 'package:provider/provider.dart';
@@ -96,56 +97,166 @@ class _FeedScreenState extends State<FeedScreen> {
     });
   }
 
+  String _currentMediaLabel(Post post) {
+    if (post.videoUrl != null) return 'video';
+    if (post.audioUrl != null) return 'âm thanh';
+    if (post.image != null) return 'ảnh';
+    return '';
+  }
+
   Future<void> _showEditPostDialog(PostProvider postProvider, Post post) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final controller = TextEditingController(text: post.content);
+    final picker = ImagePicker();
+
+    // Trạng thái media cục bộ trong dialog:
+    // mediaAction: null = giữ nguyên, 'remove' = gỡ, 'replace' = thay mới
+    String? mediaAction;
+    String? newMediaType; // 'image' | 'video'
+    String? newMediaPath;
+
+    final textColor = isDark ? Colors.white : AppTheme.slate900;
+    final subColor = isDark ? Colors.white54 : AppTheme.slate500;
+    final hasMedia = _currentMediaLabel(post).isNotEmpty;
+
     final saved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF18181B) : Colors.white,
-          title: Text(
-            'Chỉnh sửa bài viết',
-            style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
-          ),
-          content: TextField(
-            controller: controller,
-            maxLines: 5,
-            style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900),
-            decoration: InputDecoration(
-              hintText: 'Nội dung bài viết',
-              hintStyle: TextStyle(
-                color: isDark ? Colors.white54 : AppTheme.slate500,
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            String mediaStatus;
+            if (mediaAction == 'remove') {
+              mediaStatus = 'Media sẽ bị gỡ — bài viết thành dạng văn bản.';
+            } else if (mediaAction == 'replace') {
+              mediaStatus = 'Sẽ thay bằng ${newMediaType == 'video' ? 'video' : 'ảnh'} mới.';
+            } else if (hasMedia) {
+              mediaStatus = 'Media hiện tại: ${_currentMediaLabel(post)}.';
+            } else {
+              mediaStatus = 'Bài viết chưa có media.';
+            }
+
+            Future<void> pickImage() async {
+              final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+              if (x == null) return;
+              setDialogState(() {
+                mediaAction = 'replace';
+                newMediaType = 'image';
+                newMediaPath = x.path;
+              });
+            }
+
+            Future<void> pickVideo() async {
+              final x = await picker.pickVideo(source: ImageSource.gallery);
+              if (x == null) return;
+              setDialogState(() {
+                mediaAction = 'replace';
+                newMediaType = 'video';
+                newMediaPath = x.path;
+              });
+            }
+
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF18181B) : Colors.white,
+              title: Text('Chỉnh sửa bài viết', style: TextStyle(color: textColor)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      maxLines: 5,
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        hintText: 'Nội dung bài viết',
+                        hintStyle: TextStyle(color: subColor),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(mediaStatus, style: TextStyle(fontSize: 12.5, color: subColor)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        TextButton.icon(
+                          onPressed: pickImage,
+                          icon: const Icon(Icons.image_outlined, size: 18),
+                          label: Text(hasMedia ? 'Đổi ảnh' : 'Thêm ảnh'),
+                        ),
+                        TextButton.icon(
+                          onPressed: pickVideo,
+                          icon: const Icon(Icons.videocam_outlined, size: 18),
+                          label: Text(hasMedia ? 'Đổi video' : 'Thêm video'),
+                        ),
+                        if (hasMedia && mediaAction != 'remove')
+                          TextButton.icon(
+                            onPressed: () => setDialogState(() {
+                              mediaAction = 'remove';
+                              newMediaType = null;
+                              newMediaPath = null;
+                            }),
+                            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                            label: const Text('Gỡ media', style: TextStyle(color: Colors.redAccent)),
+                          ),
+                        if (mediaAction != null)
+                          TextButton(
+                            onPressed: () => setDialogState(() {
+                              mediaAction = null;
+                              newMediaType = null;
+                              newMediaPath = null;
+                            }),
+                            child: const Text('Hoàn tác'),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Lưu'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Lưu'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
 
     if (saved != true || !mounted) return;
 
-    final success = await context.read<PostProvider>().updatePost(
-      postId: post.id,
-      content: controller.text,
-    );
+    final provider = context.read<PostProvider>();
+    bool ok = true;
+
+    // 1) Cập nhật nội dung text (nếu thay đổi)
+    if (controller.text.trim() != post.content.trim()) {
+      ok = await provider.updatePost(postId: post.id, content: controller.text);
+    }
+
+    // 2) Cập nhật media (nếu có thao tác)
+    if (ok && mediaAction == 'remove') {
+      ok = await provider.updatePostMedia(postId: post.id, action: 'remove');
+    } else if (ok && mediaAction == 'replace' && newMediaPath != null) {
+      ok = await provider.updatePostMedia(
+        postId: post.id,
+        action: 'replace',
+        mediaType: newMediaType,
+        filePath: newMediaPath,
+      );
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(success
+        content: Text(ok
             ? 'Đã cập nhật bài viết.'
-            : (postProvider.error ?? 'Không thể cập nhật bài viết.')),
+            : (provider.error ?? 'Không thể cập nhật bài viết.')),
       ),
     );
   }
@@ -345,6 +456,7 @@ class _FeedScreenState extends State<FeedScreen> {
             FloatingDock(
               activeIndex: _currentTabIndex,
               onTabSelected: _handleTabChange,
+              onAddPressed: _toggleCreateModal,
               avatarUrl: currentAvatar,
               isVisible: _isDockVisible,
               notificationBadge: notificationBadge,

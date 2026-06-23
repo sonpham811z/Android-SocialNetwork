@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../config/theme.dart';
 
 class FloatingDock extends StatelessWidget {
   final int activeIndex;
   final Function(int) onTabSelected;
+  final VoidCallback? onAddPressed;
   final String? avatarUrl;
   final bool isVisible;
   final int notificationBadge;
@@ -13,6 +13,7 @@ class FloatingDock extends StatelessWidget {
     super.key,
     required this.activeIndex,
     required this.onTabSelected,
+    this.onAddPressed,
     this.avatarUrl,
     this.isVisible = true,
     this.notificationBadge = 0,
@@ -107,7 +108,7 @@ class FloatingDock extends StatelessWidget {
 
   Widget _buildAddButton(bool isDark) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onAddPressed,
       child: Container(
         width: 46,
         height: 46,

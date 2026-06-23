@@ -202,6 +202,35 @@ class PostService {
     }
   }
 
+  /// Sửa media của bài viết.
+  /// [action] = 'remove' hoặc 'replace'.
+  /// Khi 'replace': cần [mediaType] ('image'|'video'|'voice') và [filePath].
+  Future<Post?> updatePostMedia({
+    required String postId,
+    required String action,
+    String? mediaType,
+    String? filePath,
+  }) async {
+    try {
+      final form = <String, dynamic>{'action': action};
+      if (action == 'replace') {
+        form['mediaType'] = mediaType;
+        if (filePath != null) {
+          form['file'] = await MultipartFile.fromFile(filePath);
+        }
+      }
+
+      final response = await _apiClient.dio.put(
+        '$_postBaseUrl/$postId/media',
+        data: FormData.fromMap(form),
+        options: Options(contentType: 'multipart/form-data'),
+      );
+      return _extractSinglePost(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<bool> deletePost(String postId) async {
     try {
       final response = await _apiClient.dio.delete('$_postBaseUrl/$postId');

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import 'changePasswordScreen.dart';
 import 'personalInformationScreen.dart';
+import 'privacySettingsScreen.dart';
 import 'notificationsScreen.dart';
 import 'displayThemeScreen.dart';
 import 'languageScreen.dart';
@@ -58,9 +59,9 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           _buildSettingItem(
-            context, 
-            Icons.shield_outlined, 
-            t('change_password'), 
+            context,
+            Icons.shield_outlined,
+            t('change_password'),
             isDark,
             onTap: () {
               Navigator.push(
@@ -69,7 +70,19 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          
+          _buildSettingItem(
+            context,
+            Icons.lock_outline,
+            t('privacy_security'),
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PrivacySettingsScreen()),
+              );
+            },
+          ),
+
           const SizedBox(height: 24),
           
           _buildSectionHeader(t('preferences'), isDark),
@@ -165,7 +178,87 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 24),
+
+          // ===== DANGER ZONE: Xóa tài khoản =====
+          _buildSectionHeader(t('danger_zone'), isDark),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: BorderSide(color: Colors.red.withValues(alpha: 0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () => _showDeleteAccountDialog(context, isDark, t),
+              icon: const Icon(Icons.delete_forever_outlined),
+              label: Text(t('delete_account'),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            ),
+          ),
+
           const SizedBox(height: 40), // Khoảng trống dưới cùng
+        ],
+      ),
+    );
+  }
+
+  // Popup xác nhận xóa tài khoản (xóa mềm)
+  void _showDeleteAccountDialog(BuildContext context, bool isDark, String Function(String) t) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppTheme.slate900 : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          t('delete_account_title'),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        ),
+        content: Text(
+          t('delete_account_confirm'),
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t('cancel'), style: const TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              final userProfileProvider = context.read<UserProfileProvider>();
+              final authProvider = context.read<AuthProvider>();
+              final postProvider = context.read<PostProvider>();
+              final friendProvider = context.read<FriendProvider>();
+              final conversationProvider = context.read<ConversationProvider>();
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              final ok = await userProfileProvider.deleteAccount();
+
+              if (!ok) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text(userProfileProvider.error ?? t('delete_account_failed'))),
+                );
+                return;
+              }
+
+              // Dọn sạch state + đăng xuất
+              userProfileProvider.clear();
+              postProvider.clear();
+              friendProvider.clear();
+              conversationProvider.clear();
+              await authProvider.logout();
+
+              messenger.showSnackBar(
+                SnackBar(content: Text(t('delete_account_success'))),
+              );
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+            child: Text(t('delete'), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );

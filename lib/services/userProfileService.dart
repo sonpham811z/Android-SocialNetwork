@@ -309,4 +309,34 @@ return parsed.data;
       throw Exception(e.toString());
     }
   }
+
+  Future<bool> deleteCoverPhoto() async {
+    try {
+      final response =
+          await _apiClient.dio.delete('$_userProfileBaseUrl/cover-photo');
+      final body = asJsonMap(response.data);
+      return UserProfileResponse._parseBool(
+        body?['success'] ?? body?['Success'] ?? true,
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data.toString() ?? e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  /// Xóa mềm tài khoản (backend đánh dấu IsDeleted).
+  Future<bool> deleteMyAccount() async {
+    try {
+      final response = await _apiClient.dio.delete(_userProfileBaseUrl);
+      final body = asJsonMap(response.data);
+      return UserProfileResponse._parseBool(
+        body?['success'] ?? body?['Success'] ?? true,
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data.toString() ?? e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
 }

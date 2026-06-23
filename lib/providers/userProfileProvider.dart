@@ -152,4 +152,53 @@ class UserProfileProvider with ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> deleteCoverPhoto() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      if (_useMockData) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
+      final ok = await _service.deleteCoverPhoto();
+      if (ok && _profile != null) {
+        final map = _profile!.toJson();
+        map['coverPhotoUrl'] = null;
+        _profile = User.fromJson(map);
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return ok;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Xóa mềm tài khoản hiện tại.
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final ok = await _service.deleteMyAccount();
+      _isLoading = false;
+      notifyListeners();
+      return ok;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }
