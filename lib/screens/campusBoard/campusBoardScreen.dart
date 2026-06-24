@@ -620,8 +620,9 @@ class _BoardPostCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text('${post.commentsCount}',
                       style: TextStyle(fontSize: 13, color: subColor)),
-                  const Spacer(),
-                  Icon(Icons.share_outlined, size: 15, color: subColor),
+                  const SizedBox(width: 6),
+                  Text('Bình luận',
+                      style: TextStyle(fontSize: 12, color: subColor)),
                 ],
               ),
             ],
@@ -636,6 +637,11 @@ class _BoardPostCard extends StatelessWidget {
     final textColor = isDark ? Colors.white : AppTheme.slate900;
     final subColor = isDark ? AppTheme.slate400 : AppTheme.slate500;
     final sheetBg = isDark ? const Color(0xFF18181B) : Colors.white;
+    final controller = TextEditingController();
+    bool commentAnon = true;
+
+    // Load comments when the sheet opens
+    context.read<BoardProvider>().loadComments(post.id, refresh: true);
 
     showModalBottomSheet(
       context: context,
@@ -645,95 +651,326 @@ class _BoardPostCard extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) {
-        return SafeArea(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle bar
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: subColor.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  // Tag + time
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: tag.color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
+        return Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+          child: SafeArea(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+              ),
+              child: StatefulBuilder(
+                builder: (ctx, setS) => Consumer<BoardProvider>(
+                  builder: (ctx2, provider, _) {
+                    final livePost = provider.postById(post.id) ?? post;
+                    final comments = provider.commentsOf(post.id);
+                    final loading = provider.isLoadingComments(post.id);
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Handle bar
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.only(top: 12, bottom: 12),
+                            decoration: BoxDecoration(
+                              color: subColor.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(tag.icon, size: 11, color: tag.color),
-                            const SizedBox(width: 4),
-                            Text('#${tag.label}',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: tag.color)),
-                          ],
+                        // Scrollable content + comments
+                        Flexible(
+                          child: SingleChildScrollView(
+                            padding:
+                                const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Tag + author + time
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            tag.color.withValues(alpha: 0.12),
+                                        borderRadius:
+                                            BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(tag.icon,
+                                              size: 11, color: tag.color),
+                                          const SizedBox(width: 4),
+                                          Text('#${tag.label}',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: tag.color)),
+                                        ],
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      post.isAnonymous
+                                          ? 'Ẩn danh'
+                                          : (post.authorName ?? ''),
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: textColor),
+                                    ),
+                                    Text('  ·  ${post.timeAgo}',
+                                        style: TextStyle(
+                                            fontSize: 11, color: subColor)),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  post.content,
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      height: 1.6,
+                                      color: textColor),
+                                ),
+                                const SizedBox(height: 20),
+                                // Vote row (live)
+                                Row(
+                                  children: [
+                                    _voteBtn('up', Icons.arrow_upward_rounded,
+                                        Colors.orangeAccent, state: livePost),
+                                    const SizedBox(width: 6),
+                                    _scoreText(livePost.netVotes, subColor),
+                                    const SizedBox(width: 6),
+                                    _voteBtn(
+                                        'down',
+                                        Icons.arrow_downward_rounded,
+                                        const Color(0xFF2D88FF),
+                                        state: livePost),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Divider(
+                                    color: isDark
+                                        ? const Color(0xFF27272A)
+                                        : AppTheme.slate100),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Bình luận · ${livePost.commentsCount}',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: textColor),
+                                ),
+                                const SizedBox(height: 8),
+                                if (loading && comments.isEmpty)
+                                  const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Center(
+                                        child: SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Color(0xFF6366F1)))),
+                                  )
+                                else if (comments.isEmpty)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: Text(
+                                        'Chưa có bình luận. Hãy là người đầu tiên!',
+                                        style: TextStyle(
+                                            fontSize: 13, color: subColor),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  ...comments.map((c) => _commentTile(
+                                        c,
+                                        textColor: textColor,
+                                        subColor: subColor,
+                                        onDelete: () => provider.deleteComment(
+                                            post.id, c.id),
+                                      )),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        post.isAnonymous ? 'Ẩn danh' : (post.authorName ?? ''),
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: textColor),
-                      ),
-                      Text('  ·  ${post.timeAgo}',
-                          style: TextStyle(fontSize: 11, color: subColor)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Full content (không cắt dòng)
-                  Text(
-                    post.content,
-                    style: TextStyle(
-                        fontSize: 15, height: 1.6, color: textColor),
-                  ),
-                  const SizedBox(height: 20),
-                  // Vote row
-                  Row(
-                    children: [
-                      _voteBtn('up', Icons.arrow_upward_rounded,
-                          Colors.orangeAccent),
-                      const SizedBox(width: 6),
-                      _scoreText(post.netVotes, subColor),
-                      const SizedBox(width: 6),
-                      _voteBtn('down', Icons.arrow_downward_rounded,
-                          const Color(0xFF2D88FF)),
-                    ],
-                  ),
-                ],
+                        // Comment input
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(
+                                  color: isDark
+                                      ? const Color(0xFF27272A)
+                                      : AppTheme.slate100),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () =>
+                                    setS(() => commentAnon = !commentAnon),
+                                child: Tooltip(
+                                  message: commentAnon
+                                      ? 'Đang ẩn danh'
+                                      : 'Hiện tên',
+                                  child: Icon(
+                                    commentAnon
+                                        ? Icons.person_off_outlined
+                                        : Icons.person_outline,
+                                    size: 22,
+                                    color: commentAnon
+                                        ? const Color(0xFF6366F1)
+                                        : subColor,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: controller,
+                                  minLines: 1,
+                                  maxLines: 4,
+                                  style: TextStyle(
+                                      color: textColor, fontSize: 14),
+                                  decoration: InputDecoration(
+                                    hintText: 'Viết bình luận...',
+                                    hintStyle: TextStyle(
+                                        color: subColor, fontSize: 14),
+                                    isDense: true,
+                                    filled: true,
+                                    fillColor: isDark
+                                        ? const Color(0xFF27272A)
+                                        : AppTheme.slate100,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 10),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              provider.isSubmittingComment
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF6366F1))),
+                                    )
+                                  : IconButton(
+                                      icon: const Icon(Icons.send_rounded,
+                                          color: Color(0xFF6366F1)),
+                                      onPressed: () async {
+                                        final text = controller.text.trim();
+                                        if (text.isEmpty) return;
+                                        final ok = await provider.addComment(
+                                          post.id,
+                                          content: text,
+                                          isAnonymous: commentAnon,
+                                        );
+                                        if (ok) controller.clear();
+                                      },
+                                    ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
         );
       },
+    ).whenComplete(controller.dispose);
+  }
+
+  Widget _commentTile(
+    BoardComment c, {
+    required Color textColor,
+    required Color subColor,
+    required VoidCallback onDelete,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+            backgroundImage:
+                (!c.isAnonymous && (c.authorAvatar ?? '').isNotEmpty)
+                    ? NetworkImage(c.authorAvatar!)
+                    : null,
+            child: (c.isAnonymous || (c.authorAvatar ?? '').isEmpty)
+                ? Icon(
+                    c.isAnonymous
+                        ? Icons.person_off_outlined
+                        : Icons.person,
+                    size: 14,
+                    color: const Color(0xFF6366F1))
+                : null,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      c.isAnonymous ? 'Ẩn danh' : (c.authorName ?? 'Người dùng'),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: textColor),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(c.timeAgo,
+                        style: TextStyle(fontSize: 11, color: subColor)),
+                    const Spacer(),
+                    if (c.isMine)
+                      GestureDetector(
+                        onTap: onDelete,
+                        child: Icon(Icons.delete_outline_rounded,
+                            size: 15, color: subColor),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(c.content,
+                    style: TextStyle(
+                        fontSize: 14, height: 1.4, color: textColor)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _voteBtn(String type, IconData icon, Color activeColor) {
-    final isActive = post.currentUserVote == type;
+  Widget _voteBtn(String type, IconData icon, Color activeColor,
+      {BoardPost? state}) {
+    final p = state ?? post;
+    final isActive = p.currentUserVote == type;
     final inactiveColor =
         isDark ? AppTheme.slate500 : AppTheme.slate400;
     return GestureDetector(

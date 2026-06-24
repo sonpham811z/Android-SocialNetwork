@@ -57,6 +57,7 @@ class BoardPost {
   BoardPost copyWith({
     int? upvotesCount,
     int? downvotesCount,
+    int? commentsCount,
     int? netVotes,
     String? currentUserVote,
     bool clearVote = false,
@@ -71,11 +72,54 @@ class BoardPost {
       authorAvatar:   authorAvatar,
       upvotesCount:   upvotesCount ?? this.upvotesCount,
       downvotesCount: downvotesCount ?? this.downvotesCount,
-      commentsCount:  commentsCount,
+      commentsCount:  commentsCount ?? this.commentsCount,
       netVotes:       netVotes ?? this.netVotes,
       currentUserVote: clearVote ? null : (currentUserVote ?? this.currentUserVote),
       createdAt:      createdAt,
       timeAgo:        timeAgo,
+    );
+  }
+}
+
+class BoardComment {
+  final String id;
+  final String boardPostId;
+  final bool isAnonymous;
+  final String? authorId;
+  final String? authorName;
+  final String? authorAvatar;
+  final String content;
+  final DateTime createdAt;
+  final String timeAgo;
+  final bool isMine;
+
+  const BoardComment({
+    required this.id,
+    required this.boardPostId,
+    required this.isAnonymous,
+    this.authorId,
+    this.authorName,
+    this.authorAvatar,
+    required this.content,
+    required this.createdAt,
+    required this.timeAgo,
+    this.isMine = false,
+  });
+
+  factory BoardComment.fromJson(Map<String, dynamic> json) {
+    return BoardComment(
+      id:           asText(json['id'] ?? json['Id']),
+      boardPostId:  asText(json['boardPostId'] ?? json['BoardPostId']),
+      isAnonymous:  asBool(json['isAnonymous'] ?? json['IsAnonymous']),
+      authorId:     (json['authorId'] ?? json['AuthorId'])?.toString(),
+      authorName:   (json['authorName'] ?? json['AuthorName'])?.toString(),
+      authorAvatar: (json['authorAvatar'] ?? json['AuthorAvatar'])?.toString(),
+      content:      asText(json['content'] ?? json['Content']),
+      createdAt: DateTime.tryParse(
+            asText(json['createdAt'] ?? json['CreatedAt'])) ??
+          DateTime.now(),
+      timeAgo:      asText(json['timeAgo'] ?? json['TimeAgo']),
+      isMine:       asBool(json['isMine'] ?? json['IsMine']),
     );
   }
 }

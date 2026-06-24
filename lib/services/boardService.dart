@@ -78,6 +78,50 @@ class BoardService {
     }
   }
 
+  Future<List<BoardComment>> getComments(String postId) async {
+    try {
+      final response = await _apiClient.dio.get('$_base/$postId/comments');
+      final data = _readData(response.data);
+      if (data is List) {
+        return data
+            .whereType<Map>()
+            .map((e) => BoardComment.fromJson(e.cast<String, dynamic>()))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<BoardComment?> addComment({
+    required String postId,
+    required String content,
+    required bool isAnonymous,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '$_base/$postId/comments',
+        data: {'content': content, 'isAnonymous': isAnonymous},
+      );
+      final data = _readData(response.data);
+      if (data is Map<String, dynamic>) return BoardComment.fromJson(data);
+      if (data is Map) return BoardComment.fromJson(data.cast<String, dynamic>());
+      return null;
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> deleteComment(String commentId) async {
+    try {
+      await _apiClient.dio.delete('$_base/comments/$commentId');
+      return true;
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   BoardPostsResult _extractResult(dynamic raw) {

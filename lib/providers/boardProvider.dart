@@ -13,13 +13,26 @@ class BoardProvider with ChangeNotifier {
   String _sort = 'hot';
   int _total = 0;
 
+  // Comments cache per postId
+  final Map<String, List<BoardComment>> _comments = {};
+  final Set<String> _loadingComments = {};
+  bool _isSubmittingComment = false;
+
   List<BoardPost> get posts => _posts;
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
+  bool get isSubmittingComment => _isSubmittingComment;
   String? get error => _error;
   String get activeTag => _activeTag;
   String get sort => _sort;
   int get total => _total;
+
+  List<BoardComment> commentsOf(String postId) => _comments[postId] ?? const [];
+  bool isLoadingComments(String postId) => _loadingComments.contains(postId);
+  BoardPost? postById(String postId) {
+    final idx = _posts.indexWhere((p) => p.id == postId);
+    return idx == -1 ? null : _posts[idx];
+  }
 
   // Map tag display → API slug
   static const _tagSlug = {
@@ -126,6 +139,73 @@ class BoardProvider with ChangeNotifier {
       _error = e.toString();
       notifyListeners();
     }
+  }
+
+  Future<void> loadComments(String postId, {bool refresh = false}) async {
+    if (_loadingComments.contains(postId)) return;
+    if (_comments.containsKey(postId) && !refresh) return;
+
+    _loadingComments.add(postId);
+    notifyListeners();
+
+    try {
+      final list = await _service.getComments(postId);
+      _comments[postId] = list;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loadingComments.remove(postId);
+      notifyListeners();
+    }
+  }
+
+  Future<bool> addComment(
+    String postId, {
+    required String content,
+    required bool isAnonymous,
+  }) async {
+    _isSubmittingComment = true;
+    notifyListeners();
+
+    try {
+      final comment = await _service.addComment(
+        postId: postId,
+        content: content,
+        isAnonymous: isAnonymous,
+      );
+      if (comment != null) {
+        _comments[postId] = [...commentsOf(postId), comment];
+        _bumpCommentCount(postId, 1);
+      }
+      return comment != null;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _isSubmittingComment = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteComment(String postId, String commentId) async {
+    try {
+      await _service.deleteComment(commentId);
+      _comments[postId] =
+          commentsOf(postId).where((c) => c.id != commentId).toList();
+      _bumpCommentCount(postId, -1);
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  void _bumpCommentCount(String postId, int delta) {
+    final idx = _posts.indexWhere((p) => p.id == postId);
+    if (idx == -1) return;
+    final p = _posts[idx];
+    final next = (p.commentsCount + delta).clamp(0, 1 << 31);
+    _posts[idx] = p.copyWith(commentsCount: next);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
