@@ -16,6 +16,7 @@ class FriendProvider with ChangeNotifier {
   List<FollowModel> _followers = <FollowModel>[];
   List<FollowModel> _following = <FollowModel>[];
   List<BlockModel> _blockedUsers = <BlockModel>[];
+  List<FriendSuggestionModel> _suggestions = <FriendSuggestionModel>[];
 
   SocialSummaryModel? _socialSummary;
   List<String> _friendIds = <String>[];
@@ -29,6 +30,7 @@ class FriendProvider with ChangeNotifier {
   List<FollowModel> get followers => _followers;
   List<FollowModel> get following => _following;
   List<BlockModel> get blockedUsers => _blockedUsers;
+  List<FriendSuggestionModel> get suggestions => _suggestions;
   SocialSummaryModel? get socialSummary => _socialSummary;
   List<String> get friendIds => _friendIds;
 
@@ -45,6 +47,7 @@ class FriendProvider with ChangeNotifier {
     _followers = <FollowModel>[];
     _following = <FollowModel>[];
     _blockedUsers = <BlockModel>[];
+    _suggestions = <FriendSuggestionModel>[];
     _socialSummary = null;
     _friendIds = <String>[];
     _isLoading = false;
@@ -158,6 +161,23 @@ class FriendProvider with ChangeNotifier {
       final res =
           await _service.getFollowing(userId, page: page, pageSize: pageSize);
       _following = res.data?.items ?? <FollowModel>[];
+    });
+  }
+
+  Future<void> loadSuggestions({int limit = 10}) async {
+    await _runLoad(() async {
+      final res = await _service.getSuggestions(limit: limit);
+      _suggestions = res.data ?? <FriendSuggestionModel>[];
+    });
+  }
+
+  /// Send a friend request to a suggested user and remove them from the
+  /// suggestions list on success.
+  Future<bool> sendRequestToSuggestion(String receiverId) async {
+    return _runAction(() async {
+      await _service.sendFriendRequest(receiverId);
+      _suggestions =
+          _suggestions.where((s) => s.user.id != receiverId).toList();
     });
   }
 

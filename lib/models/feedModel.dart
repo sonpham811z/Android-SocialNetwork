@@ -60,7 +60,7 @@ class Comment {
   final String timestamp;
   final DateTime? createdAtRaw;
   final DateTime? updatedAt;
-  // Like state — managed locally (backend chưa có API like comment)
+  // Like state — synced with backend comment-like API (PostService.likeComment / unlikeComment)
   final int likesCount;
   final bool isLikedByCurrentUser;
 

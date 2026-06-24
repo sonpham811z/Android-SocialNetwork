@@ -99,6 +99,27 @@ class FriendService {
     }
   }
 
+  Future<FriendApiResponse<List<FriendSuggestionModel>>> getSuggestions({
+    int limit = 10,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_baseUrl/friends/suggestions',
+        queryParameters: {'limit': limit},
+      );
+
+      return FriendApiResponse.fromJson(
+        _requireMap(response.data),
+        (raw) => (asJsonList(raw) ?? const <dynamic>[])
+            .map((item) => FriendSuggestionModel.fromJson(
+                asJsonMap(item) ?? <String, dynamic>{}))
+            .toList(),
+      );
+    } catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   Future<FriendApiResponse<SocialSummaryModel>> getSocialSummary(
     String userId,
   ) async {

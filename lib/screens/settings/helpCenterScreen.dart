@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/languageProvider.dart';
+import 'staticContentScreen.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -21,21 +22,83 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   List<Map<String, dynamic>> _getTopics(String Function(String) t) => [
-    {'icon': '🚀', 'title': t('getting_started'), 'color': const Color(0xFF4CAF50)},
-    {'icon': '🔒', 'title': t('privacy_safety'), 'color': const Color(0xFFE91E63)},
-    {'icon': '⚙️', 'title': t('account_settings'), 'color': const Color(0xFF2196F3)},
-    {'icon': '💳', 'title': t('payments'), 'color': const Color(0xFFFF9800)},
-    {'icon': '🔧', 'title': t('technical_issues'), 'color': const Color(0xFF9C27B0)},
-    {'icon': '⚠️', 'title': t('report_problem'), 'color': const Color(0xFFF44336)},
+    {'icon': '🚀', 'title': t('getting_started'), 'color': const Color(0xFF4CAF50), 'body': t('getting_started_body')},
+    {'icon': '🔒', 'title': t('privacy_safety'), 'color': const Color(0xFFE91E63), 'body': t('privacy_safety_body')},
+    {'icon': '⚙️', 'title': t('account_settings'), 'color': const Color(0xFF2196F3), 'body': t('account_settings_body')},
+    {'icon': '💳', 'title': t('payments'), 'color': const Color(0xFFFF9800), 'body': t('payments_body')},
+    {'icon': '🔧', 'title': t('technical_issues'), 'color': const Color(0xFF9C27B0), 'body': t('technical_issues_body')},
+    {'icon': '⚠️', 'title': t('report_problem'), 'color': const Color(0xFFF44336), 'body': t('report_problem_body')},
   ];
 
-  List<String> _getArticles(String Function(String) t) => [
-    t('reset_password_article'),
-    t('privacy_settings_article'),
-    t('deactivate_account_article'),
-    t('login_issues_article'),
-    t('feed_algorithm_article'),
+  List<Map<String, String>> _getArticles(String Function(String) t) => [
+    {'title': t('reset_password_article'), 'body': t('reset_password_article_body')},
+    {'title': t('privacy_settings_article'), 'body': t('privacy_settings_article_body')},
+    {'title': t('deactivate_account_article'), 'body': t('deactivate_account_article_body')},
+    {'title': t('login_issues_article'), 'body': t('login_issues_article_body')},
+    {'title': t('feed_algorithm_article'), 'body': t('feed_algorithm_article_body')},
   ];
+
+  void _openContent(String title, String body) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StaticContentScreen(
+          title: title,
+          sections: [StaticSection(body: body)],
+        ),
+      ),
+    );
+  }
+
+  void _showContactDialog(BuildContext context, String Function(String) t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: isDark ? AppTheme.slate800 : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(t('contact_us'),
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(t('contact_support_desc'),
+                style: TextStyle(color: isDark ? AppTheme.slate300 : AppTheme.slate700, fontSize: 14, height: 1.5)),
+            const SizedBox(height: 16),
+            _contactRow(Icons.email_outlined, t('email_support'), t('support_email_value'), isDark),
+            const SizedBox(height: 12),
+            _contactRow(Icons.schedule_outlined, t('support_hours_label'), t('support_hours_value'), isDark),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(t('close'), style: const TextStyle(color: _fbBlue, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _contactRow(IconData icon, String label, String value, bool isDark) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: _fbBlue),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(color: AppTheme.slate500, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900, fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -106,9 +169,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   leading: Container(width: 32, height: 32, alignment: Alignment.center,
                     decoration: BoxDecoration(color: _fbBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
                     child: const Icon(Icons.article_outlined, size: 16, color: _fbBlue)),
-                  title: Text(articles[i], style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900, fontWeight: FontWeight.w500, fontSize: 14)),
+                  title: Text(articles[i]['title']!, style: TextStyle(color: isDark ? Colors.white : AppTheme.slate900, fontWeight: FontWeight.w500, fontSize: 14)),
                   trailing: Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.slate500),
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('article_coming_soon')), behavior: SnackBarBehavior.floating)),
+                  onTap: () => _openContent(articles[i]['title']!, articles[i]['body']!),
                 ),
                 if (i < articles.length - 1) Divider(height: 1, indent: 60, color: isDark ? AppTheme.slate700.withOpacity(0.5) : AppTheme.slate200),
               ])),
@@ -120,14 +183,14 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           _sectionHeader(t('contact_us'), isDark),
           const SizedBox(height: 12),
           SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('chat_support_coming')), behavior: SnackBarBehavior.floating)),
+            onPressed: () => _showContactDialog(context, t),
             icon: const Icon(Icons.chat_rounded, size: 20),
             label: Text(t('chat_support'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(backgroundColor: _fbBlue, foregroundColor: Colors.white, elevation: 2, shadowColor: _fbBlue.withOpacity(0.4), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
           )),
           const SizedBox(height: 12),
           SizedBox(width: double.infinity, height: 52, child: OutlinedButton.icon(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('email_support_coming')), behavior: SnackBarBehavior.floating)),
+            onPressed: () => _showContactDialog(context, t),
             icon: Icon(Icons.email_outlined, size: 20, color: isDark ? Colors.white : _fbBlue),
             label: Text(t('email_support'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : _fbBlue)),
             style: OutlinedButton.styleFrom(side: BorderSide(color: isDark ? AppTheme.slate600 : _fbBlue.withOpacity(0.5), width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
@@ -142,7 +205,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       style: TextStyle(color: AppTheme.slate500, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2));
 
   Widget _topicCard(Map<String, dynamic> tp, bool isDark, String Function(String) t) => GestureDetector(
-    onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tp['title']}${t('coming_soon_suffix')}'), behavior: SnackBarBehavior.floating)),
+    onTap: () => _openContent(tp['title'] as String, tp['body'] as String),
     child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: isDark ? AppTheme.slate800 : Colors.white, borderRadius: BorderRadius.circular(16),

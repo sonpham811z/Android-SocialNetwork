@@ -19,7 +19,7 @@ class _FriendsScreenState extends State<FriendsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FriendProvider>().loadMyFriends();
@@ -46,6 +46,9 @@ class _FriendsScreenState extends State<FriendsScreen>
       case 2:
         provider.loadSentRequests();
         break;
+      case 3:
+        provider.loadSuggestions();
+        break;
     }
   }
 
@@ -70,10 +73,13 @@ class _FriendsScreenState extends State<FriendsScreen>
           unselectedLabelColor: const Color(0xFFB0B3B8),
           indicatorColor: const Color(0xFF2D88FF),
           indicatorSize: TabBarIndicatorSize.tab,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: const [
             Tab(text: 'Bạn bè'),
             Tab(text: 'Lời mời'),
             Tab(text: 'Đã gửi'),
+            Tab(text: 'Gợi ý'),
           ],
         ),
       ),
@@ -83,6 +89,7 @@ class _FriendsScreenState extends State<FriendsScreen>
           _FriendsTab(),
           _ReceivedRequestsTab(),
           _SentRequestsTab(),
+          _SuggestionsTab(),
         ],
       ),
     );
@@ -439,6 +446,116 @@ class _SentRequestTile extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text('Hủy lời mời', style: TextStyle(fontSize: 13)),
+      ),
+    );
+  }
+}
+
+// ── Tab 3: Suggestions ────────────────────────────────────────────────────────
+
+class _SuggestionsTab extends StatelessWidget {
+  const _SuggestionsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<FriendProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading && provider.suggestions.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF2D88FF)),
+          );
+        }
+
+        if (provider.error != null && provider.suggestions.isEmpty) {
+          return _ErrorView(
+            message: provider.error!,
+            onRetry: () => provider.loadSuggestions(),
+          );
+        }
+
+        if (provider.suggestions.isEmpty) {
+          return const _EmptyView(
+            icon: Icons.group_add_outlined,
+            message: 'Chưa có gợi ý kết bạn nào',
+          );
+        }
+
+        return RefreshIndicator(
+          color: const Color(0xFF2D88FF),
+          backgroundColor: const Color(0xFF242526),
+          onRefresh: () => provider.loadSuggestions(),
+          child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 100, top: 8),
+            itemCount: provider.suggestions.length,
+            itemBuilder: (context, index) {
+              final suggestion = provider.suggestions[index];
+              return _SuggestionTile(
+                suggestion: suggestion,
+                isActionLoading: provider.isActionLoading,
+                onAdd: () async {
+                  final ok =
+                      await provider.sendRequestToSuggestion(suggestion.user.id);
+                  if (!context.mounted) return;
+                  _showSnack(
+                    context,
+                    ok ? 'Đã gửi lời mời kết bạn' : (provider.error ?? 'Lỗi'),
+                  );
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SuggestionTile extends StatelessWidget {
+  final FriendSuggestionModel suggestion;
+  final bool isActionLoading;
+  final VoidCallback onAdd;
+
+  const _SuggestionTile({
+    required this.suggestion,
+    required this.isActionLoading,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final user = suggestion.user;
+    final mutual = suggestion.mutualFriendsCount;
+    return ListTile(
+      onTap: () => UserProfileScreen.open(
+        context,
+        user.id,
+        displayName: user.name,
+        avatarUrl: user.avatarUrl,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: _Avatar(url: user.avatarUrl, name: user.name),
+      title: Text(
+        user.name,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+      ),
+      subtitle: Text(
+        mutual > 0 ? '$mutual bạn chung' : '@${user.userName}',
+        style: const TextStyle(color: Color(0xFFB0B3B8), fontSize: 13),
+      ),
+      trailing: TextButton.icon(
+        onPressed: isActionLoading ? null : onAdd,
+        icon: const Icon(Icons.person_add_alt_1, size: 16),
+        label: const Text('Kết bạn', style: TextStyle(fontSize: 13)),
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: const Color(0xFF2D88FF),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
       ),
     );
   }

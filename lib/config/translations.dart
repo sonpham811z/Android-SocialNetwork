@@ -165,6 +165,64 @@ const Map<String, Map<String, String>> translations = {
   'email_support_coming': {'en': 'Email support coming soon!', 'vi': 'Hỗ trợ qua email sắp ra mắt!'},
   'coming_soon_suffix': {'en': ' — coming soon!', 'vi': ' — sắp ra mắt!'},
 
+  // Article bodies
+  'reset_password_article_body': {
+    'en': 'If you forgot your password, open the login screen and tap "Forgot password". Enter your email and we will send you a reset link. Open the link, choose a new password (at least 8 characters), and sign in again.',
+    'vi': 'Nếu bạn quên mật khẩu, hãy mở màn hình đăng nhập và nhấn "Quên mật khẩu". Nhập email của bạn và chúng tôi sẽ gửi một liên kết đặt lại. Mở liên kết, chọn mật khẩu mới (ít nhất 8 ký tự) rồi đăng nhập lại.',
+  },
+  'privacy_settings_article_body': {
+    'en': 'Go to Settings → Privacy & Security to control who can see your profile, email and friends list, and who can send you friend requests. You can also manage your blocked users list there.',
+    'vi': 'Vào Cài đặt → Quyền riêng tư & Bảo mật để kiểm soát ai có thể xem trang cá nhân, email và danh sách bạn bè của bạn, cũng như ai có thể gửi lời mời kết bạn. Bạn cũng có thể quản lý danh sách người bị chặn tại đó.',
+  },
+  'deactivate_account_article_body': {
+    'en': 'To deactivate your account, go to Settings → Personal Information and choose "Delete account". Your profile and posts will be hidden. Contact support if you want to restore your account later.',
+    'vi': 'Để vô hiệu hóa tài khoản, vào Cài đặt → Thông tin cá nhân và chọn "Xóa tài khoản". Trang cá nhân và bài viết của bạn sẽ được ẩn đi. Liên hệ bộ phận hỗ trợ nếu sau này bạn muốn khôi phục tài khoản.',
+  },
+  'login_issues_article_body': {
+    'en': 'Make sure your email and password are correct and your account email is verified. If you signed up but cannot log in, tap "Resend verification email" on the sign-up screen. Check your internet connection and try again.',
+    'vi': 'Hãy đảm bảo email và mật khẩu chính xác và email tài khoản đã được xác thực. Nếu bạn đã đăng ký nhưng không đăng nhập được, hãy nhấn "Gửi lại email xác thực" ở màn hình đăng ký. Kiểm tra kết nối mạng và thử lại.',
+  },
+  'feed_algorithm_article_body': {
+    'en': 'Your feed shows posts from your friends and people you follow, with the most recent posts first. Interacting with posts (likes, comments) and adding more friends helps you see more relevant content.',
+    'vi': 'Bảng tin hiển thị bài viết từ bạn bè và những người bạn theo dõi, với các bài mới nhất hiển thị trước. Tương tác với bài viết (thích, bình luận) và kết bạn thêm sẽ giúp bạn thấy nội dung phù hợp hơn.',
+  },
+
+  // Topic bodies
+  'getting_started_body': {
+    'en': 'Welcome! Create your profile, add a photo, find friends through suggestions or search, and share your first post or story. Use the bottom dock to switch between feed, friends, messages and your profile.',
+    'vi': 'Chào mừng bạn! Hãy tạo trang cá nhân, thêm ảnh, tìm bạn bè qua mục gợi ý hoặc tìm kiếm, và chia sẻ bài viết hoặc tin đầu tiên của bạn. Dùng thanh điều hướng dưới cùng để chuyển giữa bảng tin, bạn bè, tin nhắn và trang cá nhân.',
+  },
+  'privacy_safety_body': {
+    'en': 'Control who can see your content and interact with you in Settings → Privacy & Security. You can block users, hide your email, and limit who can send friend requests. Report any post or user that violates our rules.',
+    'vi': 'Kiểm soát ai có thể xem nội dung và tương tác với bạn trong Cài đặt → Quyền riêng tư & Bảo mật. Bạn có thể chặn người dùng, ẩn email và giới hạn ai có thể gửi lời mời kết bạn. Hãy báo cáo bất kỳ bài viết hay người dùng nào vi phạm quy định.',
+  },
+  'account_settings_body': {
+    'en': 'Manage your name, bio and photos in Personal Information. Change your password, switch language, and choose light or dark theme from the Settings screen at any time.',
+    'vi': 'Quản lý tên, tiểu sử và ảnh trong mục Thông tin cá nhân. Bạn có thể đổi mật khẩu, chuyển ngôn ngữ và chọn giao diện sáng hoặc tối trong màn hình Cài đặt bất cứ lúc nào.',
+  },
+  'payments_body': {
+    'en': 'This app is completely free to use. There are no paid plans, subscriptions or in-app purchases. If you ever see a request for payment, do not provide your details and report it to support.',
+    'vi': 'Ứng dụng này hoàn toàn miễn phí. Không có gói trả phí, đăng ký hay mua hàng trong ứng dụng. Nếu bạn thấy bất kỳ yêu cầu thanh toán nào, đừng cung cấp thông tin và hãy báo cho bộ phận hỗ trợ.',
+  },
+  'technical_issues_body': {
+    'en': 'If something is not working, check your internet connection and update the app to the latest version. Closing and reopening the app fixes most temporary issues. If the problem continues, contact support with a description of what happened.',
+    'vi': 'Nếu có gì đó không hoạt động, hãy kiểm tra kết nối mạng và cập nhật ứng dụng lên phiên bản mới nhất. Đóng và mở lại ứng dụng có thể khắc phục hầu hết sự cố tạm thời. Nếu vẫn lỗi, hãy liên hệ hỗ trợ kèm mô tả tình huống.',
+  },
+  'report_problem_body': {
+    'en': 'To report a post or user, open the item and use the report option. For other problems, contact our support team by email. Please include details and screenshots so we can help you faster.',
+    'vi': 'Để báo cáo một bài viết hoặc người dùng, hãy mở mục đó và dùng tùy chọn báo cáo. Với các vấn đề khác, hãy liên hệ đội hỗ trợ qua email. Vui lòng kèm chi tiết và ảnh chụp màn hình để chúng tôi hỗ trợ nhanh hơn.',
+  },
+
+  // Contact dialog
+  'contact_support_desc': {
+    'en': 'Reach our support team using the details below. We usually reply within 24 hours.',
+    'vi': 'Liên hệ đội hỗ trợ của chúng tôi qua thông tin bên dưới. Chúng tôi thường phản hồi trong vòng 24 giờ.',
+  },
+  'support_email_value': {'en': 'support@shiku.social', 'vi': 'support@shiku.social'},
+  'support_hours_label': {'en': 'Support hours', 'vi': 'Giờ hỗ trợ'},
+  'support_hours_value': {'en': 'Mon–Fri, 9:00–18:00 (GMT+7)', 'vi': 'Thứ 2–6, 9:00–18:00 (GMT+7)'},
+  'close': {'en': 'Close', 'vi': 'Đóng'},
+
   // ═══════════════════════════════════════════════
   // ABOUT APP SCREEN
   // ═══════════════════════════════════════════════

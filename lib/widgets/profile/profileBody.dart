@@ -369,20 +369,6 @@ class _ProfileBodyState extends State<ProfileBody> with SingleTickerProviderStat
                 ],
               ),
 
-              const SizedBox(height: 12),
-              Consumer<UserProfileProvider>(
-                builder: (context, provider, _) {
-                  if (!provider.useMockData) {
-                    return const SizedBox.shrink();
-                  }
-
-                  return _buildChip(
-                    icon: Icons.science_outlined,
-                    label: 'Preview mode: Mock data',
-                    isDark: isDark,
-                  );
-                },
-              ),
             ],
           ),
         ),

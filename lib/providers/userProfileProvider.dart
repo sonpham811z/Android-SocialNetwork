@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../models/profileMockData.dart';
 import '../models/userModel.dart';
 import '../services/userProfileService.dart';
 
@@ -10,12 +9,10 @@ class UserProfileProvider with ChangeNotifier {
   User? _profile;
   bool _isLoading = false;
   String? _error;
-  bool _useMockData = false;
 
   User? get profile => _profile;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get useMockData => _useMockData;
 
   /// Reset all cached state — call on logout / account switch.
   void clear() {
@@ -25,32 +22,12 @@ class UserProfileProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setUseMockData(bool value, {bool reload = true}) async {
-    if (_useMockData == value) {
-      return;
-    }
-
-    _useMockData = value;
-    notifyListeners();
-
-    if (reload) {
-      await loadMyProfile();
-    }
-  }
-
   Future<void> loadMyProfile() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      if (_useMockData) {
-        _profile = ProfileMockData.myProfile;
-        _isLoading = false;
-        notifyListeners();
-        return;
-      }
-
       final result = await _service.getMyProfile();
       _profile = result;
     } catch (e) {
@@ -67,15 +44,6 @@ class UserProfileProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_useMockData) {
-        final currentMap = (_profile ?? ProfileMockData.myProfile).toJson();
-        currentMap.addAll(updateData);
-        _profile = User.fromJson(currentMap);
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
       final result = await _service.updateMyProfile(updateData);
       _profile = result;
       _isLoading = false;
@@ -95,12 +63,6 @@ class UserProfileProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_useMockData) {
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
       final uploadedUrl = await _service.uploadProfilePicture(filePath);
       if (_profile != null) {
         final map = _profile!.toJson();
@@ -127,12 +89,6 @@ class UserProfileProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_useMockData) {
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
       final uploadedUrl = await _service.uploadCoverPhoto(filePath);
       if (_profile != null) {
         final map = _profile!.toJson();
@@ -159,12 +115,6 @@ class UserProfileProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_useMockData) {
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
       final ok = await _service.deleteCoverPhoto();
       if (ok && _profile != null) {
         final map = _profile!.toJson();

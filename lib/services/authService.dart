@@ -536,6 +536,38 @@ class AuthService {
     }
   }
 
+  // Gửi lại email xác thực tài khoản
+  Future<bool> resendVerification(String email) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/auth/resend-verification',
+        data: {'email': email},
+      );
+
+      final responseData = _requireMap(response.data);
+      if (responseData['success'] == true) {
+        return true;
+      }
+
+      throw ApiError(
+          success: false,
+          message: responseData['message']?.toString() ??
+              'Gửi lại email thất bại');
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          throw ApiError.fromJson(responseData);
+        } else {
+          throw ApiError(success: false, message: responseData.toString());
+        }
+      }
+      throw ApiError(success: false, message: 'Lỗi kết nối: ${e.message}');
+    } catch (e) {
+      throw ApiError(success: false, message: e.toString());
+    }
+  }
+
   Future<bool> resetPassword(String token, String newPassword) async {
     try {
       final response = await _apiClient.dio.post('/auth/reset-password', data: {

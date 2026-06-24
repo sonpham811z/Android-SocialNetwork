@@ -99,17 +99,27 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
       _isResending = true;
     });
 
-    // TODO: Tích hợp gọi API Resend Email ở đây
-    await Future.delayed(const Duration(seconds: 2)); // Giả lập loading 2s
+    String message = 'Verification email resent! Please check your inbox.';
+    Color background = Colors.green;
+
+    try {
+      await AuthService().resendVerification(_emailController.text.trim());
+    } on ApiError catch (e) {
+      message = e.message;
+      background = Colors.red;
+    } catch (e) {
+      message = 'Gửi lại email thất bại: ${e.toString()}';
+      background = Colors.red;
+    }
 
     if (mounted) {
       setState(() {
         _isResending = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification email resent! Please check your inbox.'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text(message),
+          backgroundColor: background,
         ),
       );
     }

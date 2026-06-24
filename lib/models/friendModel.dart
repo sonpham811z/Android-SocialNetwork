@@ -210,6 +210,25 @@ class BlockModel {
   }
 }
 
+class FriendSuggestionModel {
+  final UserLite user;
+  final int mutualFriendsCount;
+
+  FriendSuggestionModel({
+    required this.user,
+    required this.mutualFriendsCount,
+  });
+
+  factory FriendSuggestionModel.fromJson(Map<String, dynamic> json) {
+    return FriendSuggestionModel(
+      user: UserLite.fromJson(
+          asJsonMap(json['user'] ?? json['User']) ?? <String, dynamic>{}),
+      mutualFriendsCount:
+          asInt(json['mutualFriendsCount'] ?? json['MutualFriendsCount']),
+    );
+  }
+}
+
 class SocialSummaryModel {
   final String userId;
   final int friendsCount;
