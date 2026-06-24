@@ -186,6 +186,24 @@ class PostService {
     }
   }
 
+  Future<bool> savePost(String postId) async {
+    try {
+      final response = await _apiClient.dio.post('$_postBaseUrl/$postId/save');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> unsavePost(String postId) async {
+    try {
+      final response = await _apiClient.dio.delete('$_postBaseUrl/$postId/save');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<Post?> updatePost({
     required String postId,
     required String content,

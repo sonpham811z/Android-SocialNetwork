@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import 'package:provider/provider.dart';
@@ -235,10 +236,40 @@ class PostCard extends StatelessWidget {
               ],
             )
           else
-            IconButton(
+            PopupMenuButton<String>(
               icon: const Icon(Icons.more_horiz),
-              onPressed: () {},
-              color: AppTheme.slate400,
+              color: isDark ? const Color(0xFF242526) : Colors.white,
+              onSelected: (value) {
+                if (value == 'profile') {
+                  onAuthorTap?.call();
+                } else if (value == 'copy') {
+                  Clipboard.setData(ClipboardData(text: post.content));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã sao chép nội dung bài viết')),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'profile',
+                  child: Text(
+                    'Xem trang cá nhân',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppTheme.slate900,
+                    ),
+                  ),
+                ),
+                if (post.content.isNotEmpty)
+                  PopupMenuItem(
+                    value: 'copy',
+                    child: Text(
+                      'Sao chép nội dung',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppTheme.slate900,
+                      ),
+                    ),
+                  ),
+              ],
             ),
         ],
       ),
@@ -282,9 +313,17 @@ class PostCard extends StatelessWidget {
               ),
             ],
           ),
-          Icon(
-            Icons.bookmark_border, 
-            color: isDark ? AppTheme.slate400 : AppTheme.slate600
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => context.read<PostProvider>().toggleSave(post),
+            child: Icon(
+              post.isSavedByCurrentUser
+                  ? Icons.bookmark
+                  : Icons.bookmark_border,
+              color: post.isSavedByCurrentUser
+                  ? Colors.amber
+                  : (isDark ? AppTheme.slate400 : AppTheme.slate600),
+            ),
           ),
         ],
       ),

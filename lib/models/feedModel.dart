@@ -140,6 +140,7 @@ class Post {
   final int commentsCount;
   final int sharesCount;
   final bool isLikedByCurrentUser;
+  final bool isSavedByCurrentUser;
   final List<Comment>? commentsList;
   // Share reference
   final String? originalPostId;
@@ -163,6 +164,7 @@ class Post {
     required this.commentsCount,
     this.sharesCount = 0,
     this.isLikedByCurrentUser = false,
+    this.isSavedByCurrentUser = false,
     this.commentsList,
     this.originalPostId,
     this.originalPost,
@@ -221,6 +223,7 @@ class Post {
       commentsCount: _toInt(json['commentsCount']),
       sharesCount: _toInt(json['sharesCount']),
       isLikedByCurrentUser: _toBool(json['isLikedByCurrentUser']),
+      isSavedByCurrentUser: _toBool(json['isSavedByCurrentUser']),
       commentsList: comments,
       originalPostId: originalPostId.isEmpty ? null : originalPostId,
       originalPost: originalPost,
@@ -234,6 +237,7 @@ class Post {
     int? commentsCount,
     int? sharesCount,
     bool? isLikedByCurrentUser,
+    bool? isSavedByCurrentUser,
     List<Comment>? commentsList,
     Post? originalPost,
     String? visibility,
@@ -254,6 +258,7 @@ class Post {
       commentsCount: commentsCount ?? this.commentsCount,
       sharesCount: sharesCount ?? this.sharesCount,
       isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser ?? this.isSavedByCurrentUser,
       commentsList: commentsList ?? this.commentsList,
       originalPostId: originalPostId,
       originalPost: originalPost ?? this.originalPost,

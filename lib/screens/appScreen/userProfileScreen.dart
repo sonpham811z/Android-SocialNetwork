@@ -108,10 +108,35 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
   Future<void> _toggleFriend() async {
     if (_summary == null) return;
+
+    // Already friends → confirm before unfriending
+    if (_summary!.isFriend) {
+      final name = _profile?.displayName ?? widget.displayName ?? 'người này';
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Hủy kết bạn'),
+          content: Text('Bạn có chắc muốn hủy kết bạn với $name?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Hủy kết bạn',
+                  style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+
     setState(() => _actionLoading = true);
     try {
       if (_summary!.isFriend) {
-        // unfriend not in scope — send to friend provider
+        await _friendService.unfriend(widget.userId);
       } else if (_summary!.hasPendingRequest) {
         // cancel pending — find request id via sentRequests
         final sentRes = await _friendService.getSentRequests();

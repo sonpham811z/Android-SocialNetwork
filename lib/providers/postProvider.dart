@@ -255,6 +255,25 @@ class PostProvider with ChangeNotifier {
     }
   }
 
+  Future<void> toggleSave(Post post) async {
+    final isSaved = post.isSavedByCurrentUser;
+    final optimistic = post.copyWith(isSavedByCurrentUser: !isSaved);
+    _replacePost(optimistic);
+    notifyListeners();
+
+    try {
+      if (isSaved) {
+        await _service.unsavePost(post.id);
+      } else {
+        await _service.savePost(post.id);
+      }
+    } catch (e) {
+      _replacePost(post);
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
   Future<void> loadComments(String postId) async {
     try {
       final comments = await _service.getComments(postId);
