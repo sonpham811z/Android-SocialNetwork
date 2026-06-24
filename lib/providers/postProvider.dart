@@ -8,19 +8,25 @@ class PostProvider with ChangeNotifier {
 
   final List<Post> _feedPosts = [];
   final List<Post> _myPosts = [];
+  final List<Post> _savedPosts = [];
   int _feedPostsTotalCount = 0;
   int _myPostsTotalCount = 0;
+  int _savedPostsTotalCount = 0;
   bool _isLoadingFeed = false;
   bool _isLoadingMyPosts = false;
+  bool _isLoadingSaved = false;
   bool _isSubmitting = false;
   String? _error;
 
   List<Post> get feedPosts => List.unmodifiable(_feedPosts);
   List<Post> get myPosts => List.unmodifiable(_myPosts);
+  List<Post> get savedPosts => List.unmodifiable(_savedPosts);
   int get feedPostsTotalCount => _feedPostsTotalCount;
   int get myPostsTotalCount => _myPostsTotalCount;
+  int get savedPostsTotalCount => _savedPostsTotalCount;
   bool get isLoadingFeed => _isLoadingFeed;
   bool get isLoadingMyPosts => _isLoadingMyPosts;
+  bool get isLoadingSaved => _isLoadingSaved;
   bool get isSubmitting => _isSubmitting;
   String? get error => _error;
 
@@ -28,10 +34,13 @@ class PostProvider with ChangeNotifier {
   void clear() {
     _feedPosts.clear();
     _myPosts.clear();
+    _savedPosts.clear();
     _feedPostsTotalCount = 0;
     _myPostsTotalCount = 0;
+    _savedPostsTotalCount = 0;
     _isLoadingFeed = false;
     _isLoadingMyPosts = false;
+    _isLoadingSaved = false;
     _isSubmitting = false;
     _error = null;
     notifyListeners();
@@ -87,6 +96,32 @@ class PostProvider with ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoadingMyPosts = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadSavedPosts({bool forceRefresh = false}) async {
+    if (_isLoadingSaved) {
+      return;
+    }
+    if (_savedPosts.isNotEmpty && !forceRefresh) {
+      return;
+    }
+
+    _isLoadingSaved = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await _service.getSavedPosts();
+      _savedPosts
+        ..clear()
+        ..addAll(result.posts);
+      _savedPostsTotalCount = result.totalCount;
+    } catch (e) {
+      _error = e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString();
+    } finally {
+      _isLoadingSaved = false;
       notifyListeners();
     }
   }
@@ -259,6 +294,18 @@ class PostProvider with ChangeNotifier {
     final isSaved = post.isSavedByCurrentUser;
     final optimistic = post.copyWith(isSavedByCurrentUser: !isSaved);
     _replacePost(optimistic);
+
+    // Khi bỏ lưu: gỡ ngay khỏi danh sách "đã lưu" để màn hình cập nhật tức thì.
+    int? removedAt;
+    if (isSaved) {
+      removedAt = _savedPosts.indexWhere((p) => p.id == post.id);
+      if (removedAt != -1) {
+        _savedPosts.removeAt(removedAt);
+        _savedPostsTotalCount = (_savedPostsTotalCount - 1).clamp(0, 1 << 31);
+      } else {
+        removedAt = null;
+      }
+    }
     notifyListeners();
 
     try {
@@ -268,7 +315,12 @@ class PostProvider with ChangeNotifier {
         await _service.savePost(post.id);
       }
     } catch (e) {
+      // Hoàn tác optimistic khi lỗi
       _replacePost(post);
+      if (removedAt != null) {
+        _savedPosts.insert(removedAt.clamp(0, _savedPosts.length), post);
+        _savedPostsTotalCount += 1;
+      }
       _error = e.toString();
       notifyListeners();
     }
@@ -508,6 +560,12 @@ class PostProvider with ChangeNotifier {
     for (var i = 0; i < _myPosts.length; i++) {
       if (_myPosts[i].id == postId) {
         _myPosts[i] = updater(_myPosts[i]);
+      }
+    }
+
+    for (var i = 0; i < _savedPosts.length; i++) {
+      if (_savedPosts[i].id == postId) {
+        _savedPosts[i] = updater(_savedPosts[i]);
       }
     }
   }

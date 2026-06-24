@@ -204,6 +204,18 @@ class PostService {
     }
   }
 
+  Future<PostListResult> getSavedPosts({int page = 1, int pageSize = 10}) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_postBaseUrl/saved',
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      return _extractPostListResult(response.data, page: page, pageSize: pageSize);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<Post?> updatePost({
     required String postId,
     required String content,

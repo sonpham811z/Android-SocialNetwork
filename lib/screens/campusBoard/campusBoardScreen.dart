@@ -509,7 +509,7 @@ class _CampusBoardScreenState extends State<CampusBoardScreen> {
           );
         },
       ),
-    );
+    ).whenComplete(controller.dispose);
   }
 }
 
@@ -637,8 +637,6 @@ class _BoardPostCard extends StatelessWidget {
     final textColor = isDark ? Colors.white : AppTheme.slate900;
     final subColor = isDark ? AppTheme.slate400 : AppTheme.slate500;
     final sheetBg = isDark ? const Color(0xFF18181B) : Colors.white;
-    final controller = TextEditingController();
-    bool commentAnon = true;
 
     // Load comments when the sheet opens
     context.read<BoardProvider>().loadComments(post.id, refresh: true);
@@ -804,92 +802,10 @@ class _BoardPostCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // Comment input
-                        Container(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(
-                                  color: isDark
-                                      ? const Color(0xFF27272A)
-                                      : AppTheme.slate100),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () =>
-                                    setS(() => commentAnon = !commentAnon),
-                                child: Tooltip(
-                                  message: commentAnon
-                                      ? 'Đang ẩn danh'
-                                      : 'Hiện tên',
-                                  child: Icon(
-                                    commentAnon
-                                        ? Icons.person_off_outlined
-                                        : Icons.person_outline,
-                                    size: 22,
-                                    color: commentAnon
-                                        ? const Color(0xFF6366F1)
-                                        : subColor,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextField(
-                                  controller: controller,
-                                  minLines: 1,
-                                  maxLines: 4,
-                                  style: TextStyle(
-                                      color: textColor, fontSize: 14),
-                                  decoration: InputDecoration(
-                                    hintText: 'Viết bình luận...',
-                                    hintStyle: TextStyle(
-                                        color: subColor, fontSize: 14),
-                                    isDense: true,
-                                    filled: true,
-                                    fillColor: isDark
-                                        ? const Color(0xFF27272A)
-                                        : AppTheme.slate100,
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                            horizontal: 14, vertical: 10),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              provider.isSubmittingComment
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Color(0xFF6366F1))),
-                                    )
-                                  : IconButton(
-                                      icon: const Icon(Icons.send_rounded,
-                                          color: Color(0xFF6366F1)),
-                                      onPressed: () async {
-                                        final text = controller.text.trim();
-                                        if (text.isEmpty) return;
-                                        final ok = await provider.addComment(
-                                          post.id,
-                                          content: text,
-                                          isAnonymous: commentAnon,
-                                        );
-                                        if (ok) controller.clear();
-                                      },
-                                    ),
-                            ],
-                          ),
-                        ),
+                        // Comment input — own StatefulWidget so its
+                        // TextEditingController lifecycle is tied to the widget
+                        // (no use-after-dispose when the sheet is dismissed mid-send).
+                        _BoardCommentInput(postId: post.id, isDark: isDark),
                       ],
                     );
                   },
@@ -899,7 +815,7 @@ class _BoardPostCard extends StatelessWidget {
           ),
         );
       },
-    ).whenComplete(controller.dispose);
+    );
   }
 
   Widget _commentTile(
@@ -999,6 +915,115 @@ class _BoardPostCard extends StatelessWidget {
       net > 0 ? '+$net' : '$net',
       style: TextStyle(
           fontSize: 13, fontWeight: FontWeight.w700, color: color),
+    );
+  }
+}
+
+/// Ô nhập bình luận cho bottom sheet của Campus Board.
+/// Là StatefulWidget riêng để TextEditingController gắn với vòng đời widget —
+/// tránh lỗi "used after disposed" khi đóng sheet ngay sau khi bấm gửi.
+class _BoardCommentInput extends StatefulWidget {
+  final String postId;
+  final bool isDark;
+
+  const _BoardCommentInput({required this.postId, required this.isDark});
+
+  @override
+  State<_BoardCommentInput> createState() => _BoardCommentInputState();
+}
+
+class _BoardCommentInputState extends State<_BoardCommentInput> {
+  final _controller = TextEditingController();
+  bool _anon = true;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    final provider = context.read<BoardProvider>();
+    final ok = await provider.addComment(
+      widget.postId,
+      content: text,
+      isAnonymous: _anon,
+    );
+    // Chỉ thao tác controller khi widget còn sống (sheet chưa bị đóng).
+    if (ok && mounted) _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    final textColor = isDark ? Colors.white : AppTheme.slate900;
+    final subColor = isDark ? AppTheme.slate400 : AppTheme.slate500;
+    final isSubmitting =
+        context.watch<BoardProvider>().isSubmittingComment;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+              color: isDark ? const Color(0xFF27272A) : AppTheme.slate100),
+        ),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _anon = !_anon),
+            child: Tooltip(
+              message: _anon ? 'Đang ẩn danh' : 'Hiện tên',
+              child: Icon(
+                _anon ? Icons.person_off_outlined : Icons.person_outline,
+                size: 22,
+                color: _anon ? const Color(0xFF6366F1) : subColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              minLines: 1,
+              maxLines: 4,
+              style: TextStyle(color: textColor, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Viết bình luận...',
+                hintStyle: TextStyle(color: subColor, fontSize: 14),
+                isDense: true,
+                filled: true,
+                fillColor: isDark ? const Color(0xFF27272A) : AppTheme.slate100,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          isSubmitting
+              ? const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFF6366F1))),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.send_rounded,
+                      color: Color(0xFF6366F1)),
+                  onPressed: _submit,
+                ),
+        ],
+      ),
     );
   }
 }

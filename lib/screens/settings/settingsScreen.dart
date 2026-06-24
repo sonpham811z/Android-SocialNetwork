@@ -9,6 +9,7 @@ import 'displayThemeScreen.dart';
 import 'languageScreen.dart';
 import 'helpCenterScreen.dart';
 import 'aboutAppScreen.dart';
+import '../appScreen/savedPostsScreen.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
@@ -79,6 +80,18 @@ class SettingsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const PrivacySettingsScreen()),
+              );
+            },
+          ),
+          _buildSettingItem(
+            context,
+            Icons.bookmark_border,
+            t('saved_posts'),
+            isDark,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SavedPostsScreen()),
               );
             },
           ),

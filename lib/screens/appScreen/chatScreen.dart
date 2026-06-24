@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -38,9 +39,11 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _conversationId;
   String? _currentUserId;
   List<MessageModel> _messages = [];
+  // Ảnh đang được upload/gửi — hiển thị ngay (optimistic) kèm vòng tròn loading,
+  // bị gỡ khi tin nhắn ảnh thật được server broadcast trở lại (khớp theo URL).
+  final List<_PendingImage> _pendingImages = [];
   bool _isInitializing = true;
   bool _isSending = false;
-  bool _isSendingImage = false;
   bool _hasMore = false;
   String? _nextCursor;
   bool _isLoadingMore = false;
@@ -164,7 +167,13 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) return;
     // De-duplicate by ID
     if (_messages.any((m) => m.id == message.id)) return;
-    setState(() => _messages.insert(0, message));
+    setState(() {
+      _messages.insert(0, message);
+      // Ảnh thật đã về → gỡ placeholder loading tương ứng (khớp theo URL đã upload).
+      if (message.type == 1) {
+        _pendingImages.removeWhere((p) => p.url != null && p.url == message.content);
+      }
+    });
     _signalR.markAsRead(_conversationId!);
   }
 
@@ -181,22 +190,36 @@ class _ChatScreenState extends State<ChatScreen> {
       await _signalR.sendMessage(_conversationId!, content);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        // Khôi phục nội dung để người dùng không mất tin đã gõ
+        _textController.text = content;
+        _showError(_friendlyChatError(e));
       }
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
   }
 
+  /// Chuyển lỗi kỹ thuật của server thành thông báo dễ hiểu cho người dùng.
+  String _friendlyChatError(Object e) {
+    final raw = e.toString().toLowerCase();
+    if (raw.contains('non-friend') ||
+        raw.contains('not a friend') ||
+        raw.contains('friend')) {
+      return 'Bạn chỉ có thể nhắn tin với bạn bè.';
+    }
+    if (raw.contains('not connected') || raw.contains('connection')) {
+      return 'Mất kết nối tới máy chủ. Vui lòng thử lại.';
+    }
+    if (raw.contains('not a member') || raw.contains('access denied')) {
+      return 'Bạn không có quyền nhắn trong cuộc trò chuyện này.';
+    }
+    return 'Không gửi được tin nhắn. Vui lòng thử lại.';
+  }
+
   // ── Send image ──────────────────────────────────────────────────────────────
 
   Future<void> _pickAndSendImage() async {
-    if (_conversationId == null || _isSendingImage) return;
+    if (_conversationId == null) return;
 
     final XFile? picked;
     try {
@@ -211,16 +234,25 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     if (picked == null) return;
 
-    setState(() => _isSendingImage = true);
+    // Hiển thị ngay ảnh tạm với vòng tròn loading (optimistic, kiểu Messenger).
+    final pending = _PendingImage(path: picked.path);
+    setState(() => _pendingImages.insert(0, pending));
+    await _uploadAndSendPending(pending);
+  }
+
+  /// Upload ảnh rồi gửi. Placeholder sẽ tự bị gỡ khi tin ảnh thật broadcast về
+  /// (xem [_onIncomingMessage]). Có thể gọi lại để thử lại khi thất bại.
+  Future<void> _uploadAndSendPending(_PendingImage pending) async {
+    if (mounted) setState(() => pending.failed = false);
     try {
-      final url = await _messageService.uploadImage(picked.path);
-      await _signalR.sendMessage(_conversationId!, url, type: 1); // 1 = Image
+      // Đã upload thành công ở lần trước thì không upload lại (chỉ gửi lại).
+      pending.url ??= await _messageService.uploadImage(pending.path);
+      await _signalR.sendMessage(_conversationId!, pending.url!, type: 1); // 1 = Image
     } catch (e) {
       if (mounted) {
-        _showError('Gửi ảnh thất bại: ${e.toString().replaceFirst('Exception: ', '')}');
+        setState(() => pending.failed = true);
+        _showError(_friendlyChatError(e));
       }
-    } finally {
-      if (mounted) setState(() => _isSendingImage = false);
     }
   }
 
@@ -496,14 +528,23 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
-    // Messages are newest-first — reverse so newest is at the bottom
+    // Messages are newest-first — reverse so newest is at the bottom.
+    // Pending image uploads sit at the very bottom (indices before the real messages).
+    final pendingCount = _pendingImages.length;
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       reverse: true,
-      itemCount: _messages.length + (_isLoadingMore ? 1 : 0),
+      itemCount: pendingCount + _messages.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == _messages.length) {
+        // 1) Pending (optimistic) image placeholders — newest at the bottom
+        if (index < pendingCount) {
+          return _buildPendingBubble(_pendingImages[index]);
+        }
+        final mIndex = index - pendingCount;
+
+        // 2) "Load older" spinner at the very top
+        if (mIndex == _messages.length) {
           return const Padding(
             padding: EdgeInsets.all(16),
             child: Center(
@@ -516,8 +557,74 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           );
         }
-        return _buildBubble(_messages[index]);
+
+        // 3) Real messages
+        return _buildBubble(_messages[mIndex]);
       },
+    );
+  }
+
+  /// Optimistic placeholder for an image that is still uploading/sending.
+  /// Shows the locally-picked file with a spinner overlay (Messenger style);
+  /// on failure, tapping retries the upload+send.
+  Widget _buildPendingBubble(_PendingImage pending) {
+    const radius = BorderRadius.only(
+      topLeft: Radius.circular(20),
+      topRight: Radius.circular(20),
+      bottomLeft: Radius.circular(20),
+      bottomRight: Radius.circular(4),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            GestureDetector(
+              onTap: pending.failed ? () => _uploadAndSendPending(pending) : null,
+              child: ClipRRect(
+                borderRadius: radius,
+                child: Stack(
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.62,
+                        maxHeight: 280,
+                      ),
+                      child: Image.file(File(pending.path), fit: BoxFit.cover),
+                    ),
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        alignment: Alignment.center,
+                        child: pending.failed
+                            ? const Icon(Icons.refresh,
+                                color: Colors.white, size: 34)
+                            : const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2.5, color: Colors.white),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              pending.failed ? 'Gửi thất bại — chạm để thử lại' : 'Đang gửi…',
+              style: TextStyle(
+                color: pending.failed ? Colors.redAccent : Colors.grey,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -632,17 +739,10 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Row(
           children: [
             IconButton(
-              icon: _isSendingImage
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppTheme.violetPrimary),
-                    )
-                  : const Icon(Icons.add_photo_alternate,
-                      color: AppTheme.violetPrimary),
+              icon: const Icon(Icons.add_photo_alternate,
+                  color: AppTheme.violetPrimary),
               tooltip: 'Gửi ảnh',
-              onPressed: _isSendingImage ? null : _pickAndSendImage,
+              onPressed: _pickAndSendImage,
             ),
             Expanded(
               child: Container(
@@ -689,4 +789,14 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+}
+
+/// Local-only state for an image being uploaded/sent (optimistic UI).
+/// [url] is filled once the upload succeeds; [failed] flags an upload/send error.
+class _PendingImage {
+  final String path;
+  String? url;
+  bool failed = false;
+
+  _PendingImage({required this.path});
 }

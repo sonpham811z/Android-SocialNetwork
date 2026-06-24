@@ -20,6 +20,7 @@ const Map<String, Map<String, String>> translations = {
   'cancel': {'en': 'Cancel', 'vi': 'Hủy'},
   'feature_coming_soon': {'en': 'Feature coming soon!', 'vi': 'Tính năng sắp ra mắt!'},
   'privacy_security': {'en': 'Privacy & Security', 'vi': 'Quyền riêng tư & Bảo mật'},
+  'saved_posts': {'en': 'Saved Posts', 'vi': 'Bài viết đã lưu'},
 
   // ═══════════════════════════════════════════════
   // PRIVACY SETTINGS SCREEN

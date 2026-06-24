@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import 'package:provider/provider.dart';
+import '../../providers/authProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../providers/conversationProvider.dart';
@@ -277,6 +278,11 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildPostFooter(BuildContext context, bool isDark) {
+    // Ẩn nút chia sẻ nếu đây là bài viết của chính mình.
+    final currentUserId = context.read<AuthProvider>().user?.id;
+    final isOwnPost = currentUserId != null &&
+        currentUserId.toLowerCase() == post.userId.toLowerCase();
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -303,14 +309,16 @@ class PostCard extends StatelessWidget {
                   CommentBottomSheet.show(context, post);
                 },
               ),
-              const SizedBox(width: 24),
-              _buildInteractionButton(
-                context,
-                icon: Icons.share_outlined,
-                label: post.sharesCount > 0 ? '${post.sharesCount}' : 'Chia sẻ',
-                color: isDark ? Colors.white : AppTheme.slate900,
-                onTap: () => _showShareBottomSheet(context),
-              ),
+              if (!isOwnPost) ...[
+                const SizedBox(width: 24),
+                _buildInteractionButton(
+                  context,
+                  icon: Icons.share_outlined,
+                  label: post.sharesCount > 0 ? '${post.sharesCount}' : 'Chia sẻ',
+                  color: isDark ? Colors.white : AppTheme.slate900,
+                  onTap: () => _showShareBottomSheet(context),
+                ),
+              ],
             ],
           ),
           GestureDetector(
