@@ -132,6 +132,33 @@ class NotificationService {
     }
   }
 
+  /// Trả về tập userId đang online trong số [userIds] truyền vào.
+  Future<Set<String>> getPresence(List<String> userIds) async {
+    if (userIds.isEmpty) return <String>{};
+    final token = await _token();
+    if (token == null) return <String>{};
+    try {
+      final uri = Uri.parse(
+        '${Environment.notificationServiceBaseUrl}/notification/presence',
+      );
+      final res = await http.post(
+        uri,
+        headers: _headers(token),
+        body: jsonEncode({'userIds': userIds}),
+      );
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        final data = body['data'] ?? body['Data'];
+        if (data is List) {
+          return data.map((e) => e.toString()).toSet();
+        }
+      }
+    } catch (e) {
+      debugPrint('[NotificationService] getPresence error: $e');
+    }
+    return <String>{};
+  }
+
   // ── SignalR Hub ───────────────────────────────────────────────────────────────
 
   Future<void> connect() async {

@@ -9,6 +9,7 @@ import '../../providers/postProvider.dart';
 import '../../providers/conversationProvider.dart';
 import '../../providers/storyProvider.dart';
 import '../../services/signalRService.dart';
+import '../../services/postService.dart';
 import '../comment/commentBottomSheet.dart';
 import 'voicePlayer.dart';
 import 'videoPlayer.dart';
@@ -248,6 +249,8 @@ class PostCard extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Đã sao chép nội dung bài viết')),
                   );
+                } else if (value == 'report') {
+                  _showReportDialog(context, isDark);
                 }
               },
               itemBuilder: (context) => [
@@ -270,9 +273,77 @@ class PostCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                const PopupMenuItem(
+                  value: 'report',
+                  child: Text(
+                    'Báo cáo bài viết',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                ),
               ],
             ),
         ],
+      ),
+    );
+  }
+
+  void _showReportDialog(BuildContext context, bool isDark) {
+    const reasons = [
+      'Spam hoặc lừa đảo',
+      'Nội dung phản cảm',
+      'Quấy rối hoặc bắt nạt',
+      'Thông tin sai sự thật',
+      'Khác',
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF242526) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text('Báo cáo bài viết',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppTheme.slate900)),
+            ),
+            const Divider(height: 1),
+            for (final reason in reasons)
+              ListTile(
+                title: Text(reason,
+                    style: TextStyle(
+                        color: isDark ? Colors.white : AppTheme.slate900)),
+                onTap: () async {
+                  Navigator.pop(sheetCtx);
+                  try {
+                    await PostService().reportPost(post.id, reason);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text(
+                              'Đã gửi báo cáo. Cảm ơn bạn đã đóng góp!')),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(e
+                              .toString()
+                              .replaceFirst('Exception: ', ''))),
+                    );
+                  }
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -872,30 +943,15 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
     if (_showMessengerScreen) {
       final conversationProvider = context.watch<ConversationProvider>();
       final items = conversationProvider.buildList();
-      final List<_MessengerContact> contacts = [];
-      if (items.isNotEmpty) {
-        for (final item in items) {
-          contacts.add(_MessengerContact(
+      final List<_MessengerContact> contacts = [
+        for (final item in items)
+          _MessengerContact(
             id: item.userId,
             name: item.name,
             avatarUrl: item.avatarUrl,
             conversationId: item.conversationId,
-          ));
-        }
-      } else {
-        final List<Map<String, dynamic>> mockFriends = [
-          {'id': 'u1', 'name': 'Trương Thanh Quang'},
-          {'id': 'u2', 'name': 'Lê Gia Quyền'},
-          {'id': 'u3', 'name': 'Thuy Linh'},
-          {'id': 'u4', 'name': 'Nhật Minh'},
-        ];
-        for (final f in mockFriends) {
-          contacts.add(_MessengerContact(
-            id: f['id']!,
-            name: f['name']!,
-          ));
-        }
-      }
+          ),
+      ];
 
       return Container(
         decoration: BoxDecoration(
@@ -968,7 +1024,17 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.4,
               ),
-              child: ListView.builder(
+              child: contacts.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 28),
+                      child: Center(
+                        child: Text(
+                          'Chưa có cuộc trò chuyện nào để gửi.',
+                          style: TextStyle(color: subtitleColor, fontSize: 14),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
                 shrinkWrap: true,
                 itemCount: contacts.length,
                 itemBuilder: (context, idx) {

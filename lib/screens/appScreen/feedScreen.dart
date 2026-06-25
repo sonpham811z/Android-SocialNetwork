@@ -83,6 +83,13 @@ class _FeedScreenState extends State<FeedScreen> {
       setState(() => _isDockVisible = true);
     }
 
+    // Tải thêm khi gần chạm đáy (infinite scroll)
+    if (_feedScrollController.hasClients &&
+        currentOffset >=
+            _feedScrollController.position.maxScrollExtent - 400) {
+      context.read<PostProvider>().loadMoreFeed();
+    }
+
     _lastScrollOffset = currentOffset;
   }
 
@@ -429,6 +436,18 @@ class _FeedScreenState extends State<FeedScreen> {
                                               displayName: post.user.name,
                                               avatarUrl: post.user.avatar,
                                             ),
+                                  ),
+                                ),
+                              ),
+                            if (postProvider.isLoadingMoreFeed)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 26,
+                                    height: 26,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   ),
                                 ),
                               ),

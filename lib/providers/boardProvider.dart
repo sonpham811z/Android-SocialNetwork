@@ -13,6 +13,15 @@ class BoardProvider with ChangeNotifier {
   String _sort = 'hot';
   int _total = 0;
 
+  // Pagination
+  static const int _pageSize = 20;
+  int _page = 1;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
+
   // Comments cache per postId
   final Map<String, List<BoardComment>> _comments = {};
   final Set<String> _loadingComments = {};
@@ -52,13 +61,42 @@ class BoardProvider with ChangeNotifier {
 
     try {
       final slug = _tagSlug[_activeTag];
-      final result = await _service.getPosts(tag: slug, sort: _sort);
+      final result = await _service.getPosts(
+          tag: slug, sort: _sort, page: 1, pageSize: _pageSize);
       _posts = result.posts;
       _total = result.total;
+      _page = 1;
+      _hasMore = result.posts.isNotEmpty && _posts.length < result.total;
     } catch (e) {
       _error = e.toString();
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Tải thêm trang kế tiếp (infinite scroll).
+  Future<void> loadMore() async {
+    if (_isLoadingMore || _isLoading || !_hasMore) return;
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final slug = _tagSlug[_activeTag];
+      final next = _page + 1;
+      final result = await _service.getPosts(
+          tag: slug, sort: _sort, page: next, pageSize: _pageSize);
+      if (result.posts.isNotEmpty) {
+        _posts = [..._posts, ...result.posts];
+        _page = next;
+      }
+      _total = result.total;
+      _hasMore = result.posts.isNotEmpty && _posts.length < result.total;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }

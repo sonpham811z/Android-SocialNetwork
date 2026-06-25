@@ -36,12 +36,30 @@ class CampusBoardScreen extends StatefulWidget {
 }
 
 class _CampusBoardScreenState extends State<CampusBoardScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BoardProvider>().loadPosts(refresh: true);
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.offset >=
+            _scrollController.position.maxScrollExtent - 400) {
+      context.read<BoardProvider>().loadMore();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -284,14 +302,28 @@ class _CampusBoardScreenState extends State<CampusBoardScreen> {
           color: const Color(0xFF6366F1),
           onRefresh: () => provider.loadPosts(refresh: true),
           child: ListView.separated(
+            controller: _scrollController,
             padding: const EdgeInsets.only(top: 4, bottom: 120),
-            itemCount: provider.posts.length,
+            itemCount: provider.posts.length + (provider.isLoadingMore ? 1 : 0),
             separatorBuilder: (_, __) => Divider(
               height: 1,
               color:
                   isDark ? const Color(0xFF27272A) : AppTheme.slate100,
             ),
             itemBuilder: (_, i) {
+              if (i >= provider.posts.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFF6366F1)),
+                    ),
+                  ),
+                );
+              }
               final post = provider.posts[i];
               return _BoardPostCard(
                 post: post,

@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/chatModel.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/conversationProvider.dart';
+import '../../providers/presenceProvider.dart';
 import '../../screens/appScreen/chatScreen.dart';
 import '../../screens/appScreen/createGroupScreen.dart';
 import '../../screens/appScreen/groupChatScreen.dart';
@@ -16,6 +18,8 @@ class MessageListBody extends StatefulWidget {
 }
 
 class _MessageListBodyState extends State<MessageListBody> {
+  List<String> _watchedIds = const [];
+
   @override
   void initState() {
     super.initState();
@@ -151,7 +155,8 @@ class _MessageListBodyState extends State<MessageListBody> {
 
             // Conversation + friend list
             Expanded(
-              child: _buildList(context, provider),
+              child: _buildList(
+                  context, provider, context.watch<PresenceProvider>()),
             ),
           ],
         );
@@ -159,7 +164,8 @@ class _MessageListBodyState extends State<MessageListBody> {
     );
   }
 
-  Widget _buildList(BuildContext context, ConversationProvider provider) {
+  Widget _buildList(BuildContext context, ConversationProvider provider,
+      PresenceProvider presence) {
     if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.violetPrimary),
@@ -167,6 +173,19 @@ class _MessageListBodyState extends State<MessageListBody> {
     }
 
     final items = provider.buildList();
+
+    // Cập nhật danh sách user cần theo dõi online (chỉ chat 1-1).
+    final partnerIds = items
+        .where((i) => !i.isGroup && i.userId.trim().isNotEmpty)
+        .map((i) => i.userId)
+        .toSet()
+        .toList();
+    if (!listEquals(partnerIds, _watchedIds)) {
+      _watchedIds = partnerIds;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<PresenceProvider>().watch(partnerIds);
+      });
+    }
 
     if (items.isEmpty) {
       return const Center(
@@ -189,13 +208,17 @@ class _MessageListBodyState extends State<MessageListBody> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        return _buildTile(context, item, provider.unreadFor(item.conversationId));
+        final isOnline = !item.isGroup &&
+            item.userId.trim().isNotEmpty &&
+            presence.isOnline(item.userId);
+        return _buildTile(context, item,
+            provider.unreadFor(item.conversationId), isOnline);
       },
     );
   }
 
-  Widget _buildTile(
-      BuildContext context, ConversationListItem item, int unread) {
+  Widget _buildTile(BuildContext context, ConversationListItem item, int unread,
+      bool isOnline) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).colorScheme.onSurface;
     final subtitleUnread = isDark ? Colors.white70 : AppTheme.slate700;
@@ -216,7 +239,7 @@ class _MessageListBodyState extends State<MessageListBody> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: () => _openChat(context, item),
-      leading: _buildAvatar(item, unread),
+      leading: _buildAvatar(item, unread, isOnline),
       title: Text(
         item.name,
         style: TextStyle(
@@ -246,7 +269,7 @@ class _MessageListBodyState extends State<MessageListBody> {
     );
   }
 
-  Widget _buildAvatar(ConversationListItem item, int unread) {
+  Widget _buildAvatar(ConversationListItem item, int unread, bool isOnline) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatarBg = isDark ? AppTheme.slate800 : AppTheme.slate200;
     final avatarTextColor = isDark ? Colors.white : AppTheme.slate700;
@@ -273,6 +296,21 @@ class _MessageListBodyState extends State<MessageListBody> {
                   )
                 : null,
           ),
+          // Chấm xanh online (chat 1-1)
+          if (isOnline)
+            Positioned(
+              right: 1,
+              bottom: 1,
+              child: Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF22C55E),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: dotBorderColor, width: 2),
+                ),
+              ),
+            ),
           // Badge số tin chưa đọc của hội thoại này
           if (unread > 0)
             Positioned(

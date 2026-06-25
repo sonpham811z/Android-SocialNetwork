@@ -28,6 +28,8 @@ class AuthProvider with ChangeNotifier {
       isEmailConfirmed: userData['isEmailConfirmed'] ?? false,
       // JWT không chứa firstLogin → mặc định false (sẽ lấy chính xác từ /auth/me).
       firstLogin: false,
+      // JWT có claim "isAdmin" (chuỗi "true"/"false").
+      isAdmin: userData['isAdmin'] == 'true' || userData['isAdmin'] == true,
     );
   }
 
