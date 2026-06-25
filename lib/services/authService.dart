@@ -66,6 +66,7 @@ class UserData {
   final String firstName;
   final String lastName;
   final bool isEmailConfirmed;
+  final bool firstLogin;
 
   UserData({
     required this.id,
@@ -73,6 +74,7 @@ class UserData {
     required this.firstName,
     required this.lastName,
     required this.isEmailConfirmed,
+    this.firstLogin = false,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -82,6 +84,7 @@ class UserData {
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
       isEmailConfirmed: json['isEmailConfirmed'] ?? false,
+      firstLogin: json['firstLogin'] ?? json['FirstLogin'] ?? false,
     );
   }
 
@@ -91,6 +94,7 @@ class UserData {
         'firstName': firstName,
         'lastName': lastName,
         'isEmailConfirmed': isEmailConfirmed,
+        'firstLogin': firstLogin,
       };
 
   String get fullName => '$firstName $lastName';
@@ -502,6 +506,36 @@ class AuthService {
   // Get access token
   Future<String?> getAccessToken() async {
     return await _apiClient.secureStorage.read(key: 'accessToken');
+  }
+
+  // Lấy thông tin user hiện tại từ server (nguồn sự thật cho firstLogin)
+  Future<UserData?> getMe() async {
+    try {
+      final response = await _apiClient.dio.get('/auth/me');
+      final map = asJsonMap(response.data);
+      final data = map?['data'] ?? map?['Data'];
+      if (data is Map) {
+        return UserData.fromJson(data.cast<String, dynamic>());
+      }
+      return null;
+    } on DioException {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Đánh dấu đã xem phần giới thiệu (set FirstLogin = false trên server)
+  Future<bool> completeIntro() async {
+    try {
+      final response = await _apiClient.dio.post('/auth/complete-intro');
+      final map = asJsonMap(response.data);
+      return (map?['success'] ?? map?['Success']) == true;
+    } on DioException {
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   // Bắn API xin link Forgot Password

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/authService.dart';
 
 
@@ -20,8 +19,6 @@ class AuthProvider with ChangeNotifier {
   String? get error => _error;
   UserData? get user => _user;
 
-  String _introSeenKey(String userId) => 'intro_seen_$userId';
-
   UserData _mapUserData(Map<String, dynamic> userData) {
     return UserData(
       id: userData['sub']?.toString() ?? userData['id']?.toString() ?? '',
@@ -29,33 +26,26 @@ class AuthProvider with ChangeNotifier {
       firstName: userData['firstName'] ?? '',
       lastName: userData['lastName'] ?? '',
       isEmailConfirmed: userData['isEmailConfirmed'] ?? false,
+      // JWT không chứa firstLogin → mặc định false (sẽ lấy chính xác từ /auth/me).
+      firstLogin: false,
     );
   }
 
-  Future<void> _loadIntroVisibilityForCurrentUser() async {
-    final userId = (_user?.id ?? '').trim();
-    if (userId.isEmpty) {
-      _shouldShowIntro = false;
-      return;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final isIntroSeen = prefs.getBool(_introSeenKey(userId)) ?? false;
-    _shouldShowIntro = !isIntroSeen;
+  // Quyết định hiển thị giới thiệu dựa trên cờ firstLogin (lưu trên DB).
+  void _loadIntroVisibilityForCurrentUser() {
+    _shouldShowIntro = _user?.firstLogin ?? false;
   }
 
   Future<void> markIntroAsSeen() async {
-    final userId = (_user?.id ?? '').trim();
-    if (userId.isEmpty) {
-      _shouldShowIntro = false;
-      notifyListeners();
-      return;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_introSeenKey(userId), true);
     _shouldShowIntro = false;
     notifyListeners();
+
+    // Cập nhật server (set FirstLogin = false) để không hiện lại ở thiết bị khác / cold boot.
+    try {
+      await _authService.completeIntro();
+    } catch (_) {
+      // Bỏ qua lỗi mạng — phiên hiện tại đã ẩn giới thiệu.
+    }
   }
 
   AuthProvider() {
@@ -70,10 +60,18 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = await _authService.isAuthenticated();
 
       if (_isAuthenticated) {
-        final userData = await _authService.getCurrentUser();
-        if(userData != null) {
-          _user = _mapUserData(userData);
-          await _loadIntroVisibilityForCurrentUser();
+        // Ưu tiên lấy user tươi từ server (có cờ firstLogin chính xác).
+        final me = await _authService.getMe();
+        if (me != null) {
+          _user = me;
+          _loadIntroVisibilityForCurrentUser();
+        } else {
+          // Offline / lỗi mạng → fallback decode JWT, không hiện giới thiệu.
+          final userData = await _authService.getCurrentUser();
+          if (userData != null) {
+            _user = _mapUserData(userData);
+          }
+          _shouldShowIntro = false;
         }
       } else {
         _user = null;
@@ -116,7 +114,7 @@ class AuthProvider with ChangeNotifier {
       {
         _user = response.data!.user;
         _isAuthenticated = true;
-        await _loadIntroVisibilityForCurrentUser();
+        _loadIntroVisibilityForCurrentUser();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -203,7 +201,7 @@ class AuthProvider with ChangeNotifier {
       if (response.success && response.data != null) {
         _user = response.data!.user;
         _isAuthenticated = true;
-        await _loadIntroVisibilityForCurrentUser();
+        _loadIntroVisibilityForCurrentUser();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -268,7 +266,7 @@ class AuthProvider with ChangeNotifier {
       if (response.success && response.data != null) {
         _user = response.data!.user;
         _isAuthenticated = true;
-        await _loadIntroVisibilityForCurrentUser();
+        _loadIntroVisibilityForCurrentUser();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -344,7 +342,7 @@ class AuthProvider with ChangeNotifier {
     final userData = await _authService.getCurrentUser();
     if (userData != null) {
       _user = _mapUserData(userData);
-      await _loadIntroVisibilityForCurrentUser();
+      _loadIntroVisibilityForCurrentUser();
       notifyListeners();
     }
   }
