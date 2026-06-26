@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../providers/storyProvider.dart';
@@ -160,10 +161,10 @@ class _StoriesSectionState extends State<StoriesSection> {
                   ),
                   child: ClipOval(
                     child: avatarUrl.isNotEmpty
-                        ? Image.network(
-                            avatarUrl,
+                        ? CachedNetworkImage(
+                            imageUrl: avatarUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
+                            errorWidget: (_, __, ___) => Icon(
                               Icons.person,
                               size: 32,
                               color: isDark ? Colors.white54 : AppTheme.slate500,
@@ -258,10 +259,10 @@ class _StoriesSectionState extends State<StoriesSection> {
                   ),
                 ),
                 child: ClipOval(
-                  child: Image.network(
-                    item.user.avatar,
+                  child: CachedNetworkImage(
+                    imageUrl: item.user.avatar,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorWidget: (_, __, ___) => Container(
                       color: AppTheme.slate800,
                       child: const Icon(Icons.person, color: Colors.white),
                     ),

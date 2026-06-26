@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
+import '../common/mentionText.dart';
 
 class CommentItem extends StatefulWidget {
   final Comment comment;
@@ -163,7 +165,7 @@ class _CommentItemState extends State<CommentItem>
                 backgroundColor:
                     isDark ? const Color(0xFF2A2A2E) : AppTheme.slate200,
                 backgroundImage: comment.user.avatar.isNotEmpty
-                    ? NetworkImage(comment.user.avatar)
+                    ? CachedNetworkImageProvider(comment.user.avatar)
                     : null,
                 child: comment.user.avatar.isEmpty
                     ? Icon(Icons.person,
@@ -209,7 +211,7 @@ class _CommentItemState extends State<CommentItem>
                                 ),
                                 const SizedBox(height: 3),
                                 // Content
-                                Text(
+                                MentionText(
                                   comment.content,
                                   style: TextStyle(
                                     fontSize: 14,

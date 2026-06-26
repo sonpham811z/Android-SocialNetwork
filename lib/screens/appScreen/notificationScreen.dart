@@ -59,9 +59,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         }
         break;
 
-      // Like / comment → mở bài viết liên quan
+      // Like / comment / được nhắc → mở bài viết liên quan
       case NotificationType.postLiked:
       case NotificationType.commentCreated:
+      case NotificationType.mentioned:
         if (n.referenceId != null && n.referenceId!.isNotEmpty) {
           PostDetailScreen.open(context, n.referenceId!);
         }

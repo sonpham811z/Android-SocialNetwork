@@ -36,6 +36,8 @@ dependencies:
   flutter_svg: ^2.0.9
   image_picker: ^1.1.2
   file_picker: ^8.1.7
+  # Image caching (avatar/post/story) — cuộn mượt, đỡ tải lại
+  cached_network_image: ^3.4.1
   # Form Validation
   email_validator: ^2.1.17
   

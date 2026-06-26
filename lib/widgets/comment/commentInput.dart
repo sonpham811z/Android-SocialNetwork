@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../models/friendModel.dart';
+import '../../providers/friendProvider.dart';
+import '../../utils/mention_utils.dart';
+import '../common/mentionSuggestionList.dart';
 
 class CommentInput extends StatefulWidget {
   final String? avatarUrl;
@@ -32,6 +37,18 @@ class _CommentInputState extends State<CommentInput> {
     _controller.addListener(() {
       if (mounted) setState(() {});
     });
+    // Nạp danh sách bạn bè để gợi ý @mention (nếu chưa có).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final fp = context.read<FriendProvider>();
+      if (fp.friends.isEmpty) fp.loadMyFriends();
+    });
+  }
+
+  void _onMentionSelected(UserLite user) {
+    final mention = activeMentionQuery(_controller.value);
+    if (mention == null) return;
+    _controller.value = applyMention(_controller.value, mention, user.userName);
   }
 
   @override
@@ -61,6 +78,17 @@ class _CommentInputState extends State<CommentInput> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasText = _controller.text.trim().isNotEmpty;
 
+    // Gợi ý @mention theo bạn bè
+    final mention = activeMentionQuery(_controller.value);
+    final friends = context
+        .watch<FriendProvider>()
+        .friends
+        .map((f) => f.friend)
+        .toList();
+    final mentionSuggestions = mention == null
+        ? const <UserLite>[]
+        : filterMentionCandidates(friends, mention.query);
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
@@ -75,6 +103,13 @@ class _CommentInputState extends State<CommentInput> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Gợi ý @mention
+            if (mentionSuggestions.isNotEmpty)
+              MentionSuggestionList(
+                suggestions: mentionSuggestions,
+                onSelected: _onMentionSelected,
+              ),
+
             // Reply indicator
             if (widget.replyingToUser != null)
               Container(

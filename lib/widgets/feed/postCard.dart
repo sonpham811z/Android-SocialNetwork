@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ import '../../providers/conversationProvider.dart';
 import '../../providers/storyProvider.dart';
 import '../../services/signalRService.dart';
 import '../../services/postService.dart';
+import '../common/mentionText.dart';
 import '../comment/commentBottomSheet.dart';
 import 'voicePlayer.dart';
 import 'videoPlayer.dart';
@@ -72,7 +74,7 @@ class PostCard extends StatelessWidget {
           if (post.content.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
+              child: MentionText(
                 post.content,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   height: 1.5,
@@ -103,11 +105,15 @@ class PostCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: ClipRRect(
-                child: Image.network(
-                  post.image!,
+                child: CachedNetworkImage(
+                  imageUrl: post.image!,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
+                  placeholder: (context, url) => Container(
+                    height: 200,
+                    color: isDark ? const Color(0xFF151517) : AppTheme.slate100,
+                  ),
+                  errorWidget: (context, error, stackTrace) {
                     return Container(
                       height: 200,
                       color: isDark ? const Color(0xFF151517) : AppTheme.slate100,
@@ -154,7 +160,7 @@ class PostCard extends StatelessWidget {
             onTap: onAuthorTap,
             child: CircleAvatar(
               radius: 20,
-              backgroundImage: NetworkImage(post.user.avatar),
+              backgroundImage: CachedNetworkImageProvider(post.user.avatar),
             ),
           ),
           const SizedBox(width: 12),
@@ -431,7 +437,7 @@ class PostCard extends StatelessWidget {
                   radius: 14,
                   backgroundColor: Colors.grey[600],
                   backgroundImage: original.user.avatar.isNotEmpty
-                      ? NetworkImage(original.user.avatar)
+                      ? CachedNetworkImageProvider(original.user.avatar)
                       : null,
                   child: original.user.avatar.isEmpty
                       ? const Icon(Icons.person, size: 14, color: Colors.white)
@@ -483,12 +489,12 @@ class PostCard extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   if (original.videoThumbnailUrl != null)
-                    Image.network(
-                      original.videoThumbnailUrl!,
+                    CachedNetworkImage(
+                      imageUrl: original.videoThumbnailUrl!,
                       height: 160,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorWidget: (_, __, ___) => Container(
                         height: 160,
                         color: Colors.black,
                       ),
@@ -510,12 +516,12 @@ class PostCard extends StatelessWidget {
           else if (original.image != null)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-              child: Image.network(
-                original.image!,
+              child: CachedNetworkImage(
+                imageUrl: original.image!,
                 height: 160,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorWidget: (_, __, ___) => const SizedBox.shrink(),
               ),
             )
           else
@@ -616,7 +622,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
             CircleAvatar(
               radius: 20,
               backgroundImage: (contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty)
-                  ? NetworkImage(contact.avatarUrl!)
+                  ? CachedNetworkImageProvider(contact.avatarUrl!)
                   : null,
               backgroundColor: Colors.grey[700],
               child: (contact.avatarUrl == null || contact.avatarUrl!.isEmpty)
@@ -1364,7 +1370,7 @@ class _ShareBottomSheetState extends State<_ShareBottomSheet> {
                       CircleAvatar(
                         radius: 20,
                         backgroundImage: (currentUserAvatar != null && currentUserAvatar.isNotEmpty)
-                            ? NetworkImage(currentUserAvatar)
+                            ? CachedNetworkImageProvider(currentUserAvatar)
                             : null,
                         backgroundColor: Colors.grey[600],
                         child: (currentUserAvatar == null || currentUserAvatar.isEmpty)

@@ -3,9 +3,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../models/friendModel.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../providers/userProfileProvider.dart';
+import '../../providers/friendProvider.dart';
+import '../../utils/mention_utils.dart';
+import '../common/mentionSuggestionList.dart';
 
 // Visibility options matching PostVisibility enum in backend (Public=0, Friends=1, Private=2)
 class _VisibilityOption {
@@ -72,6 +76,26 @@ class _CreatePostModalState extends State<CreatePostModal> {
   String? _pickedAudioPath;
   String? _pickedVideoPath;
   String _visibility = 'Public';
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(() {
+      if (mounted) setState(() {}); // cập nhật gợi ý @mention khi gõ
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final fp = context.read<FriendProvider>();
+      if (fp.friends.isEmpty) fp.loadMyFriends();
+    });
+  }
+
+  void _onMentionSelected(UserLite user) {
+    final mention = activeMentionQuery(_textController.value);
+    if (mention == null) return;
+    _textController.value =
+        applyMention(_textController.value, mention, user.userName);
+  }
 
   Future<void> _submitPost() async {
     final content = _textController.text.trim();
@@ -229,6 +253,29 @@ class _CreatePostModalState extends State<CreatePostModal> {
                             ),
                             const SizedBox(height: 16),
                             _buildTextInput(textColor: textColor, hintColor: hintColor),
+                            Builder(builder: (context) {
+                              final mention =
+                                  activeMentionQuery(_textController.value);
+                              if (mention == null) return const SizedBox.shrink();
+                              final friends = context
+                                  .watch<FriendProvider>()
+                                  .friends
+                                  .map((f) => f.friend)
+                                  .toList();
+                              final sug = filterMentionCandidates(
+                                  friends, mention.query);
+                              if (sug.isEmpty) return const SizedBox.shrink();
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: MentionSuggestionList(
+                                    suggestions: sug,
+                                    onSelected: _onMentionSelected,
+                                  ),
+                                ),
+                              );
+                            }),
                             const SizedBox(height: 16),
                             if (_pickedImagePath != null || _pickedAudioPath != null || _pickedVideoPath != null) ...[
                               _buildPickedMediaPreview(isDark: isDark),

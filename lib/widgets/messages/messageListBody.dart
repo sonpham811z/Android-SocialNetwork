@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/chatModel.dart';
@@ -284,7 +285,7 @@ class _MessageListBodyState extends State<MessageListBody> {
             radius: 28,
             backgroundColor: avatarBg,
             backgroundImage: item.avatarUrl != null
-                ? NetworkImage(item.avatarUrl!)
+                ? CachedNetworkImageProvider(item.avatarUrl!)
                 : null,
             child: item.avatarUrl == null
                 ? Text(

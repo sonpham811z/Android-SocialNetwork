@@ -7,6 +7,7 @@ enum NotificationType {
   postLiked,
   commentCreated,
   messageReceived,
+  mentioned,
 }
 
 enum NotificationStatus { unread, read }
@@ -96,6 +97,8 @@ class NotificationModel {
         return NotificationType.commentCreated;
       case 'MessageReceived':
         return NotificationType.messageReceived;
+      case 'Mentioned':
+        return NotificationType.mentioned;
       default:
         return NotificationType.messageReceived;
     }
@@ -114,6 +117,8 @@ class NotificationModel {
         return Icons.comment;
       case NotificationType.messageReceived:
         return Icons.chat_bubble;
+      case NotificationType.mentioned:
+        return Icons.alternate_email;
     }
   }
 
@@ -129,6 +134,8 @@ class NotificationModel {
         return const Color(0xFF10B981);
       case NotificationType.messageReceived:
         return const Color(0xFF8B5CF6);
+      case NotificationType.mentioned:
+        return const Color(0xFFF59E0B);
     }
   }
 
