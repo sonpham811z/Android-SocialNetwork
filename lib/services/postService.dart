@@ -43,6 +43,23 @@ class PostService {
     }
   }
 
+  /// Tìm kiếm bài viết theo nội dung (hỗ trợ cả #hashtag: truyền q = '#tag').
+  Future<PostListResult> searchPosts(
+    String query, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_postBaseUrl/search',
+        queryParameters: {'q': query, 'page': page, 'pageSize': pageSize},
+      );
+      return _extractPostListResult(response.data, page: page, pageSize: pageSize);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   Future<Post?> getPostById(String postId) async {
     try {
       final response = await _apiClient.dio.get('$_postBaseUrl/$postId');

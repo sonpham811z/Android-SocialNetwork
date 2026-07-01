@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/themeProvider.dart';
+import '../../screens/appScreen/searchScreen.dart';
 
 class FeedHeader extends StatefulWidget {
   final VoidCallback onCreatePost;
@@ -16,9 +17,6 @@ class FeedHeader extends StatefulWidget {
 }
 
 class _FeedHeaderState extends State<FeedHeader> {
-  bool _isSearching = false;
-  final TextEditingController _searchController = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -35,9 +33,7 @@ class _FeedHeaderState extends State<FeedHeader> {
           ),
         ),
       ),
-      child: _isSearching
-          ? _buildSearchBar(isDark)
-          : _buildNormalHeader(isDark, themeProvider),
+      child: _buildNormalHeader(isDark, themeProvider),
     );
   }
 
@@ -99,11 +95,7 @@ class _FeedHeaderState extends State<FeedHeader> {
         _buildIconButton(
           Icons.search,
           isDark,
-          () {
-            setState(() {
-              _isSearching = true;
-            });
-          },
+          () => SearchScreen.open(context),
         ),
 
         const SizedBox(width: 8),
@@ -121,61 +113,6 @@ class _FeedHeaderState extends State<FeedHeader> {
           Icons.add_rounded,
           isDark,
           widget.onCreatePost,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchBar(bool isDark) {
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: isDark ? Colors.white : AppTheme.slate700,
-          ),
-          onPressed: () {
-            setState(() {
-              _isSearching = false;
-              _searchController.clear();
-            });
-          },
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            autofocus: true,
-            style: TextStyle(
-              color: isDark ? Colors.white : AppTheme.slate900,
-              fontSize: 15,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Tìm kiếm...',
-              hintStyle: TextStyle(
-                color: isDark ? AppTheme.slate600 : AppTheme.slate500,
-                fontWeight: FontWeight.w500,
-              ),
-              filled: true,
-              fillColor: isDark ? const Color(0xFF18181B) : AppTheme.slate100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 10,
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  Icons.close,
-                  color: isDark ? AppTheme.slate500 : AppTheme.slate600,
-                  size: 20,
-                ),
-                onPressed: () => _searchController.clear(),
-              ),
-            ),
-          ),
         ),
       ],
     );
