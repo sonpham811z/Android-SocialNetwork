@@ -3,47 +3,71 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/theme.dart';
-import '../../providers/friendProvider.dart';
+import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
+import '../../providers/friendProvider.dart';
+import '../../services/postService.dart';
 import '../../services/userProfileService.dart';
+import '../../widgets/feed/postCard.dart';
 import 'userProfileScreen.dart';
 
-class SearchUserScreen extends StatefulWidget {
-  const SearchUserScreen({super.key});
+/// Màn tìm kiếm gộp: tab "Mọi người" (user) + tab "Bài viết" (post & #hashtag).
+class SearchScreen extends StatefulWidget {
+  final String? initialQuery;
+  final int initialTabIndex;
 
-  static Future<void> open(BuildContext context) {
+  const SearchScreen({super.key, this.initialQuery, this.initialTabIndex = 0});
+
+  static Future<void> open(
+    BuildContext context, {
+    String? initialQuery,
+    int initialTabIndex = 0,
+  }) {
     return Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const SearchUserScreen(),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        pageBuilder: (_, __, ___) =>
+            SearchScreen(initialQuery: initialQuery, initialTabIndex: initialTabIndex),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 180),
       ),
     );
   }
 
   @override
-  State<SearchUserScreen> createState() => _SearchUserScreenState();
+  State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchUserScreenState extends State<SearchUserScreen> {
+class _SearchScreenState extends State<SearchScreen>
+    with SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   final _userProfileService = UserProfileService();
+  final _postService = PostService();
+  late final TabController _tabController;
   Timer? _debounce;
 
-  List<UserSearchResult> _results = [];
-  bool _isLoading = false;
+  List<UserSearchResult> _users = [];
+  List<Post> _posts = [];
+  bool _loadingUsers = false;
+  bool _loadingPosts = false;
   String? _error;
   String _lastQuery = '';
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
+    _tabController =
+        TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
     _controller.addListener(_onTextChanged);
+
+    final initial = widget.initialQuery?.trim() ?? '';
+    if (initial.isNotEmpty) {
+      _controller.text = initial;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _search(initial));
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
+    }
   }
 
   @override
@@ -51,6 +75,7 @@ class _SearchUserScreenState extends State<SearchUserScreen> {
     _debounce?.cancel();
     _controller.dispose();
     _focusNode.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -59,7 +84,12 @@ class _SearchUserScreenState extends State<SearchUserScreen> {
     final q = _controller.text.trim();
     if (q == _lastQuery) return;
     if (q.isEmpty) {
-      setState(() { _results = []; _error = null; _lastQuery = ''; });
+      setState(() {
+        _users = [];
+        _posts = [];
+        _error = null;
+        _lastQuery = '';
+      });
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 350), () => _search(q));
@@ -67,20 +97,37 @@ class _SearchUserScreenState extends State<SearchUserScreen> {
 
   Future<void> _search(String q) async {
     if (!mounted) return;
-    setState(() { _isLoading = true; _error = null; _lastQuery = q; });
-    try {
-      final results = await _userProfileService.searchUsersByUsername(
-        q.replaceFirst('@', ''),
-        pageSize: 20,
-      );
-      if (!mounted) return;
-      setState(() { _results = results; });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() { _error = 'Không thể tìm kiếm.'; _results = []; });
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    setState(() {
+      _loadingUsers = true;
+      _loadingPosts = true;
+      _error = null;
+      _lastQuery = q;
+    });
+
+    // Tìm user + bài viết song song.
+    final results = await Future.wait([
+      _userProfileService
+          .searchUsersByUsername(q.replaceFirst('@', ''), pageSize: 20)
+          .then<Object>((v) => v)
+          .catchError((_) => 'error'),
+      _postService
+          .searchPosts(q, pageSize: 20)
+          .then<Object>((v) => v)
+          .catchError((_) => 'error'),
+    ]);
+
+    if (!mounted) return;
+    setState(() {
+      final userRes = results[0];
+      final postRes = results[1];
+      _users = userRes is List<UserSearchResult> ? userRes : [];
+      _posts = postRes is PostListResult ? postRes.posts : [];
+      _loadingUsers = false;
+      _loadingPosts = false;
+      if (userRes == 'error' && postRes == 'error') {
+        _error = 'Không thể tìm kiếm.';
+      }
+    });
   }
 
   @override
@@ -121,12 +168,14 @@ class _SearchUserScreenState extends State<SearchUserScreen> {
                     },
                     style: TextStyle(color: textColor, fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Tìm kiếm người dùng...',
+                      hintText: 'Tìm người dùng, bài viết, #hashtag...',
                       hintStyle: TextStyle(color: hintColor, fontSize: 14),
-                      prefixIcon: Icon(Icons.search_rounded, color: hintColor, size: 20),
+                      prefixIcon:
+                          Icon(Icons.search_rounded, color: hintColor, size: 20),
                       suffixIcon: _controller.text.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.close_rounded, color: hintColor, size: 18),
+                              icon: Icon(Icons.close_rounded,
+                                  color: hintColor, size: 18),
                               onPressed: () {
                                 _controller.clear();
                                 _focusNode.requestFocus();
@@ -153,81 +202,120 @@ class _SearchUserScreenState extends State<SearchUserScreen> {
           ),
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(0.5),
-          child: Container(
-            height: 0.5,
-            color: isDark ? const Color(0xFF27272A) : AppTheme.slate200,
+          preferredSize: const Size.fromHeight(48),
+          child: TabBar(
+            controller: _tabController,
+            labelColor: AppTheme.violetPrimary,
+            unselectedLabelColor: isDark ? AppTheme.slate400 : AppTheme.slate500,
+            indicatorColor: AppTheme.violetPrimary,
+            tabs: const [
+              Tab(text: 'Mọi người'),
+              Tab(text: 'Bài viết'),
+            ],
           ),
         ),
       ),
-      body: _buildBody(isDark),
-    );
-  }
-
-  Widget _buildBody(bool isDark) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.grey, size: 40),
-            const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => _search(_lastQuery),
-              child: const Text('Thử lại'),
+      body: _error != null
+          ? _buildError(isDark)
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildUsersTab(isDark),
+                _buildPostsTab(isDark),
+              ],
             ),
-          ],
-        ),
-      );
-    }
-
-    if (_controller.text.isEmpty) {
-      return _buildEmptyState(isDark, isInitial: true);
-    }
-
-    if (_results.isEmpty && _lastQuery.isNotEmpty) {
-      return _buildEmptyState(isDark, isInitial: false);
-    }
-
-    return Consumer<FriendProvider>(
-      builder: (context, friendProvider, _) {
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: _results.length,
-          itemBuilder: (context, i) =>
-              _UserResultTile(item: _results[i], friendProvider: friendProvider),
-        );
-      },
     );
   }
 
-  Widget _buildEmptyState(bool isDark, {required bool isInitial}) {
-    final subtleColor = isDark ? AppTheme.slate500 : AppTheme.slate400;
+  Widget _buildError(bool isDark) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isInitial ? Icons.person_search_rounded : Icons.search_off_rounded,
-            size: 56,
-            color: subtleColor,
-          ),
+          const Icon(Icons.error_outline, color: Colors.grey, size: 40),
+          const SizedBox(height: 8),
+          Text(_error!, style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 12),
-          Text(
-            isInitial ? 'Nhập tên hoặc @username để tìm' : 'Không tìm thấy "@$_lastQuery"',
-            style: TextStyle(color: subtleColor, fontSize: 14),
+          TextButton(
+            onPressed: () => _search(_lastQuery),
+            child: const Text('Thử lại'),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildUsersTab(bool isDark) {
+    if (_loadingUsers) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    if (_controller.text.isEmpty) {
+      return _emptyState(isDark, Icons.person_search_rounded,
+          'Nhập tên hoặc @username để tìm');
+    }
+    if (_users.isEmpty) {
+      return _emptyState(
+          isDark, Icons.search_off_rounded, 'Không tìm thấy người dùng');
+    }
+    return Consumer<FriendProvider>(
+      builder: (context, friendProvider, _) {
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: _users.length,
+          itemBuilder: (context, i) =>
+              _UserResultTile(item: _users[i], friendProvider: friendProvider),
+        );
+      },
+    );
+  }
+
+  Widget _buildPostsTab(bool isDark) {
+    if (_loadingPosts) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    if (_controller.text.isEmpty) {
+      return _emptyState(
+          isDark, Icons.article_outlined, 'Nhập từ khoá hoặc #hashtag để tìm bài viết');
+    }
+    if (_posts.isEmpty) {
+      return _emptyState(
+          isDark, Icons.search_off_rounded, 'Không tìm thấy bài viết');
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: _posts.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, i) {
+        final post = _posts[i];
+        return PostCard(
+          post: post,
+          onAuthorTap: () => UserProfileScreen.open(
+            context,
+            post.userId,
+            displayName: post.user.name,
+            avatarUrl: post.user.avatar,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _emptyState(bool isDark, IconData icon, String message) {
+    final subtleColor = isDark ? AppTheme.slate500 : AppTheme.slate400;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 56, color: subtleColor),
+          const SizedBox(height: 12),
+          Text(message, style: TextStyle(color: subtleColor, fontSize: 14)),
+        ],
+      ),
+    );
+  }
 }
+
+// ── User result tile (kèm nút kết bạn) ────────────────────────────────────────
 
 class _UserResultTile extends StatelessWidget {
   final UserSearchResult item;
@@ -260,7 +348,6 @@ class _UserResultTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            // Avatar
             CircleAvatar(
               radius: 24,
               backgroundColor: isDark ? const Color(0xFF3F3F46) : AppTheme.slate200,
@@ -268,11 +355,11 @@ class _UserResultTile extends StatelessWidget {
                   ? NetworkImage(item.profilePictureUrl!)
                   : null,
               child: (item.profilePictureUrl ?? '').isEmpty
-                  ? Icon(Icons.person, color: isDark ? Colors.white54 : AppTheme.slate500, size: 22)
+                  ? Icon(Icons.person,
+                      color: isDark ? Colors.white54 : AppTheme.slate500, size: 22)
                   : null,
             ),
             const SizedBox(width: 12),
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +380,8 @@ class _UserResultTile extends StatelessWidget {
                       ),
                       if (item.isVerified) ...[
                         const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded, size: 14, color: Colors.blue),
+                        const Icon(Icons.verified_rounded,
+                            size: 14, color: Colors.blue),
                       ],
                     ],
                   ),
@@ -308,7 +396,6 @@ class _UserResultTile extends StatelessWidget {
                 ],
               ),
             ),
-            // Action
             if (!isSelf) _buildAction(context, isDark, isFriend, hasSent, hasReceived),
           ],
         ),
@@ -316,9 +403,10 @@ class _UserResultTile extends StatelessWidget {
     );
   }
 
-  Widget _buildAction(BuildContext context, bool isDark, bool isFriend, bool hasSent, bool hasReceived) {
+  Widget _buildAction(BuildContext context, bool isDark, bool isFriend,
+      bool hasSent, bool hasReceived) {
     if (isFriend) return _badge('Bạn bè', isDark);
-    if (hasSent)  return _badge('Đã gửi', isDark);
+    if (hasSent) return _badge('Đã gửi', isDark);
     if (hasReceived) return _badge('Đã nhận', isDark);
 
     return SizedBox(

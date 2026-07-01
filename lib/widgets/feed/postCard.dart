@@ -10,6 +10,8 @@ import '../../providers/conversationProvider.dart';
 import '../../providers/storyProvider.dart';
 import '../../services/signalRService.dart';
 import '../comment/commentBottomSheet.dart';
+import '../common/hashtagText.dart';
+import '../../screens/appScreen/searchScreen.dart';
 import 'voicePlayer.dart';
 import 'videoPlayer.dart';
 
@@ -71,12 +73,17 @@ class PostCard extends StatelessWidget {
           if (post.content.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                post.content,
+              child: HashtagText(
+                text: post.content,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   height: 1.5,
                   fontSize: 15,
                   color: primaryText,
+                ),
+                onTagTap: (tag) => SearchScreen.open(
+                  context,
+                  initialQuery: '#$tag',
+                  initialTabIndex: 1,
                 ),
               ),
             ),
