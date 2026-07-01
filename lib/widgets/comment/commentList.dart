@@ -15,6 +15,7 @@ class CommentList extends StatefulWidget {
   final void Function(String commentId)? onDelete;
   final void Function(String commentId)? onLike;
   final void Function(String userId)? onAvatarTap;
+  final void Function(String username)? onMentionTap;
   final VoidCallback? onRetry;
   final Set<String> newCommentIds;
 
@@ -30,6 +31,7 @@ class CommentList extends StatefulWidget {
     this.onDelete,
     this.onLike,
     this.onAvatarTap,
+    this.onMentionTap,
     this.onRetry,
     this.newCommentIds = const {},
   });
@@ -56,6 +58,7 @@ class _CommentListState extends State<CommentList> {
     final onDelete = widget.onDelete;
     final onLike = widget.onLike;
     final onAvatarTap = widget.onAvatarTap;
+    final onMentionTap = widget.onMentionTap;
     final onRetry = widget.onRetry;
     final newCommentIds = widget.newCommentIds;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -204,6 +207,7 @@ class _CommentListState extends State<CommentList> {
               onDelete: () => onDelete?.call(parent.id),
               onLike: () => onLike?.call(parent.id),
               onAvatarTap: () => onAvatarTap?.call(parent.userId),
+              onMentionTap: onMentionTap,
             ),
             // Visible replies
             ...visibleReplies.map(
@@ -219,6 +223,7 @@ class _CommentListState extends State<CommentList> {
                 onDelete: () => onDelete?.call(reply.id),
                 onLike: () => onLike?.call(reply.id),
                 onAvatarTap: () => onAvatarTap?.call(reply.userId),
+                onMentionTap: onMentionTap,
               ),
             ),
             // Expand / collapse toggle
