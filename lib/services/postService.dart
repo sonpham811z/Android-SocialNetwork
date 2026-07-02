@@ -35,6 +35,38 @@ class PostService {
     }
   }
 
+  /// Feed video dọc (Reels): các bài Public có video.
+  Future<PostListResult> getReels({int page = 1, int pageSize = 10}) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_postBaseUrl/reels',
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      return _extractPostListResult(response.data, page: page, pageSize: pageSize);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  /// Dịch nội dung bài viết sang [targetLang] ('vi' | 'en'). Trả về bản dịch, null nếu lỗi.
+  Future<String?> translatePost(String text, {String targetLang = 'vi'}) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '$_postBaseUrl/ai/translate',
+        data: {'text': text, 'targetLang': targetLang},
+      );
+      final payload = _readData(response.data);
+      if (payload is Map) {
+        final map = payload.cast<String, dynamic>();
+        final t = (map['translatedText'] ?? map['TranslatedText'])?.toString();
+        if (t != null && t.trim().isNotEmpty) return t.trim();
+      }
+      return null;
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
   /// Tìm kiếm bài viết theo nội dung (hỗ trợ cả #hashtag: truyền q = '#tag').
   Future<PostListResult> searchPosts(
     String query, {

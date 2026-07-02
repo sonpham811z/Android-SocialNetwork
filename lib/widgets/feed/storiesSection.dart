@@ -5,6 +5,7 @@ import '../../models/feedModel.dart';
 import '../../providers/storyProvider.dart';
 import '../../providers/themeProvider.dart';
 import '../../providers/userProfileProvider.dart';
+import '../../screens/appScreen/reelsScreen.dart';
 import '../../screens/appScreen/searchScreen.dart';
 import '../../screens/story/createStoryScreen.dart';
 import '../../screens/story/storyViewerScreen.dart';
@@ -53,6 +54,8 @@ class _StoriesSectionState extends State<StoriesSection> {
               ),
             ),
             const Spacer(),
+            _iconButton(icon: Icons.play_circle_outline_rounded, isDark: isDark, onTap: () => ReelsScreen.open(context)),
+            const SizedBox(width: 6),
             _iconButton(icon: Icons.search_rounded, isDark: isDark, onTap: () => SearchScreen.open(context)),
             const SizedBox(width: 6),
             _iconButton(

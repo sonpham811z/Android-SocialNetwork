@@ -8,7 +8,9 @@ import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../providers/conversationProvider.dart';
 import '../../providers/storyProvider.dart';
+import '../../providers/languageProvider.dart';
 import '../../services/signalRService.dart';
+import '../../services/postService.dart';
 import '../comment/commentBottomSheet.dart';
 import '../common/hashtagText.dart';
 import '../../screens/appScreen/searchScreen.dart';
@@ -73,17 +75,12 @@ class PostCard extends StatelessWidget {
           if (post.content.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: HashtagText(
-                text: post.content,
+              child: _TranslatableContent(
+                content: post.content,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   height: 1.5,
                   fontSize: 15,
                   color: primaryText,
-                ),
-                onTagTap: (tag) => SearchScreen.open(
-                  context,
-                  initialQuery: '#$tag',
-                  initialTabIndex: 1,
                 ),
               ),
             ),
@@ -498,6 +495,112 @@ class PostCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Nội dung bài viết (có #hashtag bấm được) + nút "Dịch" bằng AI.
+class _TranslatableContent extends StatefulWidget {
+  final String content;
+  final TextStyle? style;
+
+  const _TranslatableContent({required this.content, this.style});
+
+  @override
+  State<_TranslatableContent> createState() => _TranslatableContentState();
+}
+
+class _TranslatableContentState extends State<_TranslatableContent> {
+  final PostService _postService = PostService();
+  String? _translated;
+  bool _showTranslated = false;
+  bool _loading = false;
+
+  Future<void> _translate() async {
+    // Đã dịch rồi thì chỉ bật lại chế độ xem bản dịch.
+    if (_translated != null) {
+      setState(() => _showTranslated = true);
+      return;
+    }
+    setState(() => _loading = true);
+    final target = context.read<LanguageProvider>().languageCode;
+    try {
+      final result =
+          await _postService.translatePost(widget.content, targetLang: target);
+      if (!mounted) return;
+      if (result != null && result.isNotEmpty) {
+        setState(() {
+          _translated = result;
+          _showTranslated = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không dịch được, thử lại nhé.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final display = _showTranslated ? (_translated ?? widget.content) : widget.content;
+    final subtle = Theme.of(context).brightness == Brightness.dark
+        ? AppTheme.slate400
+        : AppTheme.slate500;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        HashtagText(
+          text: display,
+          style: widget.style,
+          onTagTap: (tag) => SearchScreen.open(
+            context,
+            initialQuery: '#$tag',
+            initialTabIndex: 1,
+          ),
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: _loading
+              ? null
+              : () {
+                  if (_showTranslated) {
+                    setState(() => _showTranslated = false); // xem bản gốc
+                  } else {
+                    _translate();
+                  }
+                },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_loading)
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(Icons.translate_rounded, size: 14, color: subtle),
+              const SizedBox(width: 4),
+              Text(
+                _loading
+                    ? 'Đang dịch...'
+                    : (_showTranslated ? 'Xem bản gốc' : 'Dịch'),
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600, color: subtle),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

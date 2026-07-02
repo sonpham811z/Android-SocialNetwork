@@ -92,6 +92,10 @@ class _SearchScreenState extends State<SearchScreen>
       });
       return;
     }
+    // Gõ hashtag → chuyển sang tab Bài viết cho khỏi tưởng "không có kết quả".
+    if (q.startsWith('#') && _tabController.index != 1) {
+      _tabController.animateTo(1);
+    }
     _debounce = Timer(const Duration(milliseconds: 350), () => _search(q));
   }
 
