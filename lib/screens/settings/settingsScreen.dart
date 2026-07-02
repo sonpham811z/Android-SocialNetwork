@@ -10,6 +10,7 @@ import 'languageScreen.dart';
 import 'helpCenterScreen.dart';
 import 'aboutAppScreen.dart';
 import '../appScreen/savedPostsScreen.dart';
+import '../admin/adminReportsScreen.dart';
 import '../../providers/authProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../providers/postProvider.dart';
@@ -163,9 +164,28 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          
+
+          // ── Quản trị (chỉ admin) ───────────────────────────────────────
+          if (context.watch<AuthProvider>().user?.isAdmin ?? false) ...[
+            const SizedBox(height: 24),
+            _buildSectionHeader('Quản trị', isDark),
+            _buildSettingItem(
+              context,
+              Icons.flag_outlined,
+              'Quản lý báo cáo',
+              isDark,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const AdminReportsScreen()),
+                );
+              },
+            ),
+          ],
+
           const SizedBox(height: 32),
-          
+
           // Nút Đăng Xuất (Logout) màu đỏ nổi bật
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../config/environment.dart';
 import '../models/feedModel.dart';
+import '../models/reportModel.dart';
 import 'apiClient.dart';
 
 class PostListResult {
@@ -16,6 +17,13 @@ class PostListResult {
     required this.page,
     required this.pageSize,
   });
+}
+
+class ReportListResult {
+  final List<PostReportItem> reports;
+  final int totalCount;
+
+  const ReportListResult({required this.reports, required this.totalCount});
 }
 
 class PostService {
@@ -229,6 +237,78 @@ class PostService {
   Future<bool> unlikePost(String postId) async {
     try {
       final response = await _apiClient.dio.delete('$_postBaseUrl/$postId/like');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  // ── Report / moderation ──────────────────────────────────────────────────
+
+  Future<bool> reportPost(String postId, String reason) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '$_postBaseUrl/$postId/report',
+        data: {'reason': reason},
+      );
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<ReportListResult> getReports({
+    String status = 'pending',
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '$_postBaseUrl/reports',
+        queryParameters: {'status': status, 'page': page, 'pageSize': pageSize},
+      );
+      final payload = _readData(response.data);
+      if (payload is Map<String, dynamic>) {
+        final items = payload['items'];
+        final list = items is List
+            ? items
+                .whereType<Map>()
+                .map((e) => PostReportItem.fromJson(e.cast<String, dynamic>()))
+                .toList()
+            : <PostReportItem>[];
+        return ReportListResult(
+          reports: list,
+          totalCount: _readTotalCount(payload, list.length),
+        );
+      }
+      return const ReportListResult(reports: [], totalCount: 0);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> hidePost(String postId) async {
+    try {
+      final response = await _apiClient.dio.post('$_postBaseUrl/$postId/hide');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> unhidePost(String postId) async {
+    try {
+      final response = await _apiClient.dio.delete('$_postBaseUrl/$postId/hide');
+      return _extractSuccess(response.data);
+    } on DioException catch (e) {
+      throw Exception(ApiClient.buildReadableErrorMessage(e));
+    }
+  }
+
+  Future<bool> dismissReport(String reportId) async {
+    try {
+      final response =
+          await _apiClient.dio.put('$_postBaseUrl/reports/$reportId/dismiss');
       return _extractSuccess(response.data);
     } on DioException catch (e) {
       throw Exception(ApiClient.buildReadableErrorMessage(e));

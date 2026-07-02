@@ -67,6 +67,7 @@ class UserData {
   final String lastName;
   final bool isEmailConfirmed;
   final bool firstLogin;
+  final bool isAdmin;
 
   UserData({
     required this.id,
@@ -75,6 +76,7 @@ class UserData {
     required this.lastName,
     required this.isEmailConfirmed,
     this.firstLogin = false,
+    this.isAdmin = false,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -85,6 +87,7 @@ class UserData {
       lastName: json['lastName'] ?? '',
       isEmailConfirmed: json['isEmailConfirmed'] ?? false,
       firstLogin: json['firstLogin'] ?? json['FirstLogin'] ?? false,
+      isAdmin: json['isAdmin'] ?? json['IsAdmin'] ?? false,
     );
   }
 
@@ -95,6 +98,7 @@ class UserData {
         'lastName': lastName,
         'isEmailConfirmed': isEmailConfirmed,
         'firstLogin': firstLogin,
+        'isAdmin': isAdmin,
       };
 
   String get fullName => '$firstName $lastName';

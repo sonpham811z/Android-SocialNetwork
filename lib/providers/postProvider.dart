@@ -18,6 +18,15 @@ class PostProvider with ChangeNotifier {
   bool _isSubmitting = false;
   String? _error;
 
+  // Feed pagination
+  static const int _feedPageSize = 20;
+  int _feedPage = 1;
+  bool _isLoadingMoreFeed = false;
+  bool _hasMoreFeed = true;
+
+  bool get isLoadingMoreFeed => _isLoadingMoreFeed;
+  bool get hasMoreFeed => _hasMoreFeed;
+
   List<Post> get feedPosts => List.unmodifiable(_feedPosts);
   List<Post> get myPosts => List.unmodifiable(_myPosts);
   List<Post> get savedPosts => List.unmodifiable(_savedPosts);
@@ -60,15 +69,48 @@ class PostProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _service.getFeed();
+      final result = await _service.getFeed(page: 1, pageSize: _feedPageSize);
       _feedPosts
         ..clear()
         ..addAll(result.posts);
       _feedPostsTotalCount = result.totalCount;
+      _feedPage = 1;
+      _hasMoreFeed =
+          result.posts.isNotEmpty && _feedPosts.length < result.totalCount;
     } catch (e) {
       _error = e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString();
     } finally {
       _isLoadingFeed = false;
+      notifyListeners();
+    }
+  }
+
+  /// Tải thêm trang kế tiếp của bảng tin (infinite scroll).
+  Future<void> loadMoreFeed() async {
+    if (_isLoadingMoreFeed || _isLoadingFeed || !_hasMoreFeed) {
+      return;
+    }
+
+    _isLoadingMoreFeed = true;
+    notifyListeners();
+
+    try {
+      final next = _feedPage + 1;
+      final result =
+          await _service.getFeed(page: next, pageSize: _feedPageSize);
+      if (result.posts.isNotEmpty) {
+        _feedPosts.addAll(result.posts);
+        _feedPage = next;
+      }
+      _feedPostsTotalCount = result.totalCount;
+      _hasMoreFeed =
+          result.posts.isNotEmpty && _feedPosts.length < result.totalCount;
+    } catch (e) {
+      _error = e is Exception
+          ? e.toString().replaceFirst('Exception: ', '')
+          : e.toString();
+    } finally {
+      _isLoadingMoreFeed = false;
       notifyListeners();
     }
   }

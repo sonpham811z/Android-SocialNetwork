@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
+import '../common/mentionText.dart';
 
 class CommentItem extends StatefulWidget {
   final Comment comment;
@@ -12,6 +13,7 @@ class CommentItem extends StatefulWidget {
   final Future<bool> Function(String content)? onEdit;
   final VoidCallback? onLike;
   final VoidCallback? onAvatarTap;
+  final void Function(String username)? onMentionTap;
   final bool isNew;
 
   const CommentItem({
@@ -24,6 +26,7 @@ class CommentItem extends StatefulWidget {
     this.onEdit,
     this.onLike,
     this.onAvatarTap,
+    this.onMentionTap,
     this.isNew = false,
   });
 
@@ -209,8 +212,10 @@ class _CommentItemState extends State<CommentItem>
                                 ),
                                 const SizedBox(height: 3),
                                 // Content
-                                Text(
-                                  comment.content,
+                                MentionText(
+                                  text: comment.content,
+                                  onMentionTap: (username) =>
+                                      widget.onMentionTap?.call(username),
                                   style: TextStyle(
                                     fontSize: 14,
                                     height: 1.45,

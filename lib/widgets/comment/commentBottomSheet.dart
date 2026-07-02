@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/feedModel.dart';
 import '../../providers/authProvider.dart';
+import '../../providers/friendProvider.dart';
 import '../../providers/postProvider.dart';
 import '../../providers/userProfileProvider.dart';
 import '../../screens/appScreen/userProfileScreen.dart';
+import '../../services/userProfileService.dart';
 import 'commentInput.dart';
 import 'commentList.dart';
 
@@ -42,6 +44,15 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
   void initState() {
     super.initState();
     _loadComments();
+    _loadFriendsForMentions();
+  }
+
+  /// Nạp danh sách bạn bè (nếu chưa có) để gợi ý khi gõ `@` trong bình luận.
+  void _loadFriendsForMentions() {
+    final friendProvider = context.read<FriendProvider>();
+    if (friendProvider.friends.isEmpty) {
+      friendProvider.loadMyFriends(pageSize: 100);
+    }
   }
 
   @override
@@ -81,6 +92,44 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
       _replyingToCommentId = null;
       _replyingToUserName = null;
     });
+  }
+
+  /// Mở trang cá nhân của người được nhắc trong bình luận.
+  /// Ưu tiên tra trong danh sách bạn bè (không cần gọi API), nếu không có thì
+  /// resolve username → userId qua User service.
+  Future<void> _handleMentionTap(String username) async {
+    final currentUserId = context.read<AuthProvider>().user?.id ?? '';
+
+    final friends = context.read<FriendProvider>().friends;
+    for (final f in friends) {
+      if (f.friend.userName.toLowerCase() == username.toLowerCase()) {
+        _openProfile(f.friend.id, currentUserId);
+        return;
+      }
+    }
+
+    try {
+      final user = await UserProfileService().getProfileByUsername(username);
+      if (!mounted) return;
+      if (user == null || user.id.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không tìm thấy người dùng @$username')),
+        );
+        return;
+      }
+      _openProfile(user.id, currentUserId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tìm thấy người dùng @$username')),
+      );
+    }
+  }
+
+  void _openProfile(String userId, String currentUserId) {
+    if (userId.isEmpty || userId == currentUserId) return;
+    Navigator.of(context).pop();
+    UserProfileScreen.open(context, userId);
   }
 
   Future<bool> _handleSubmit(String content) async {
@@ -182,6 +231,14 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
     final currentUserId = context.watch<AuthProvider>().user?.id ?? '';
     final currentAvatar =
         context.watch<UserProfileProvider>().profile?.avatar;
+
+    // Bạn bè dùng cho gợi ý @mention (loại trừ chính mình).
+    final mentionSuggestions = context
+        .watch<FriendProvider>()
+        .friends
+        .map((f) => f.friend)
+        .where((u) => u.id != currentUserId && u.userName.isNotEmpty)
+        .toList();
 
     // Get the latest post data from provider
     final postProvider = context.watch<PostProvider>();
@@ -305,6 +362,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                       Navigator.of(context).pop();
                       UserProfileScreen.open(context, userId);
                     },
+                    onMentionTap: _handleMentionTap,
                     onRetry: _loadComments,
                   ),
                 ),
@@ -319,6 +377,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                     onCancelReply: _cancelReply,
                     focusNode: _inputFocusNode,
                     onSubmit: _handleSubmit,
+                    mentionSuggestions: mentionSuggestions,
                   ),
                 ),
               ],
